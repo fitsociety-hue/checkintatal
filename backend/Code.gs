@@ -44,7 +44,7 @@ function handleRequest(e, method) {
 
     switch (action) {
       case 'login': result = login(payload.team, payload.name, payload.password); break;
-      case 'register': result = registerUser(payload.team, payload.name, payload.password); break;
+      case 'register': result = registerUser(payload.team, payload.name, payload.password, payload.role); break;
       
       // 회원 관리
       case 'getMembers': result = getMembers(payload.programId, payload.status); break;
@@ -149,7 +149,7 @@ function login(team, name, password) {
   const staffData = getSheetDataAsJSON('직원_마스터');
   
   // 관리자는 팀 구분을 안할 수 있으므로, 팀 필터링 적용 혹은 이름+비번만으로 매칭할 수 있음
-  const user = staffData.find(s => s.이름 === name && s.비밀번호해시 == password && s.상태 !== '비활성');
+  const user = staffData.find(s => s.이름 === name && (s.비밀번호 == password || s.비밀번호해시 == password) && s.상태 !== '비활성');
   
   if (!user) {
     // 관리자의 경우 하드코딩된 마스터 계정 허용 (초기 세팅용)
@@ -192,7 +192,7 @@ function verifyToken(token) {
   }
 }
 
-function registerUser(team, name, password) {
+function registerUser(team, name, password, role) {
   const sheet = getSheet('직원_마스터');
   const staffData = getSheetDataAsJSON('직원_마스터');
   
@@ -205,7 +205,7 @@ function registerUser(team, name, password) {
   // 중복이 아니면 가입 허용
   const newId = 'STAFF_' + new Date().getTime();
   sheet.appendRow([
-    newId, name, team, '팀원', password, '활성', ''
+    newId, name, team, role || '팀원', password, '활성', ''
   ]);
   
   return true;

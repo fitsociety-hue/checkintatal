@@ -99,6 +99,13 @@
           <input type="text" id="reg-name" class="form-input" placeholder="이름을 입력하세요" required>
         </div>
         <div class="form-group">
+          <label class="form-label">직위</label>
+          <select id="reg-role" class="form-select" required>
+            <option value="팀원">팀원</option>
+            <option value="팀장">팀장</option>
+          </select>
+        </div>
+        <div class="form-group">
           <label class="form-label">비밀번호</label>
           <input type="password" id="reg-password" class="form-input" placeholder="비밀번호를 입력하세요" required>
         </div>
@@ -167,9 +174,16 @@
       e.preventDefault();
       const team = document.getElementById('reg-team').value;
       const name = document.getElementById('reg-name').value;
+      const role = document.getElementById('reg-role').value;
       const password = document.getElementById('reg-password').value;
+      const passwordConfirm = document.getElementById('reg-password-confirm').value;
       
-      const success = await Auth.register(team, name, password);
+      if (password !== passwordConfirm) {
+        Utils.showToast('비밀번호가 일치하지 않습니다.', 'error');
+        return;
+      }
+      
+      const success = await Auth.register(team, name, password, role);
       if (success) {
         toggleAuthMode(false);
       }
