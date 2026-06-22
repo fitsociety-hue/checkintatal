@@ -19,7 +19,9 @@ function handleRequest(e, method) {
   try {
     let payload = {};
     if (method === 'POST') {
-      if (e.postData && e.postData.contents) {
+      if (e.parameter.data) {
+        payload = JSON.parse(e.parameter.data);
+      } else if (e.postData && e.postData.contents) {
         payload = JSON.parse(e.postData.contents);
       }
     } else {

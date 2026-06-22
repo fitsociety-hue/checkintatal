@@ -31,12 +31,17 @@
     </div>
     
     <div id="login-container">
-      <form id="login-form">
+      <div class="flex gap-1 mb-3" id="login-tabs">
+        <button type="button" class="btn-primary flex-1" id="btn-tab-staff" onclick="switchLoginTab('staff')">직원 로그인</button>
+        <button type="button" class="btn-secondary flex-1" id="btn-tab-admin" onclick="switchLoginTab('admin')">관리자 로그인</button>
+      </div>
+
+      <!-- 직원 로그인 -->
+      <form id="login-form-staff">
         <div class="form-group">
           <label class="form-label">소속 팀</label>
-          <select id="team" class="form-select" required>
+          <select id="staff-team" class="form-select" required>
             <option value="">팀 선택</option>
-            <option value="관리자">관리자 (전체)</option>
             <option value="지역연계팀">지역연계팀</option>
             <option value="맞춤지원팀">맞춤지원팀</option>
             <option value="건강문화팀">건강문화팀</option>
@@ -47,14 +52,28 @@
         </div>
         <div class="form-group">
           <label class="form-label">이름</label>
-          <input type="text" id="name" class="form-input" placeholder="이름을 입력하세요" required>
+          <input type="text" id="staff-name" class="form-input" placeholder="이름을 입력하세요" required>
         </div>
         <div class="form-group">
           <label class="form-label">비밀번호</label>
-          <input type="password" id="password" class="form-input" placeholder="비밀번호를 입력하세요" required>
+          <input type="password" id="staff-password" class="form-input" placeholder="비밀번호를 입력하세요" required>
         </div>
         <button type="submit" class="btn-primary" style="width: 100%; margin-top: 10px;">로그인</button>
       </form>
+
+      <!-- 관리자 로그인 -->
+      <form id="login-form-admin" class="hidden">
+        <div class="form-group">
+          <label class="form-label">관리자 아이디(이름)</label>
+          <input type="text" id="admin-name" class="form-input" placeholder="아이디를 입력하세요" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">비밀번호</label>
+          <input type="password" id="admin-password" class="form-input" placeholder="비밀번호를 입력하세요" required>
+        </div>
+        <button type="submit" class="btn-primary" style="width: 100%; margin-top: 10px;">관리자 로그인</button>
+      </form>
+
       <div class="text-center mt-3">
         <a href="#" class="btn-ghost" style="font-size: 14px; text-decoration: none;" onclick="toggleAuthMode(true)">회원가입 하기</a>
       </div>
@@ -111,16 +130,37 @@
       }
     }
 
-    document.getElementById('login-form').addEventListener('submit', async (e) => {
+    function switchLoginTab(type) {
+      if (type === 'staff') {
+        document.getElementById('login-form-staff').classList.remove('hidden');
+        document.getElementById('login-form-admin').classList.add('hidden');
+        document.getElementById('btn-tab-staff').className = 'btn-primary flex-1';
+        document.getElementById('btn-tab-admin').className = 'btn-secondary flex-1';
+      } else {
+        document.getElementById('login-form-staff').classList.add('hidden');
+        document.getElementById('login-form-admin').classList.remove('hidden');
+        document.getElementById('btn-tab-staff').className = 'btn-secondary flex-1';
+        document.getElementById('btn-tab-admin').className = 'btn-primary flex-1';
+      }
+    }
+
+    document.getElementById('login-form-staff').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const team = document.getElementById('team').value;
-      const name = document.getElementById('name').value;
-      const password = document.getElementById('password').value;
+      const team = document.getElementById('staff-team').value;
+      const name = document.getElementById('staff-name').value;
+      const password = document.getElementById('staff-password').value;
       
       const success = await Auth.login(team, name, password);
-      if (success) {
-        window.location.href = 'dashboard.html';
-      }
+      if (success) window.location.href = 'dashboard.html';
+    });
+
+    document.getElementById('login-form-admin').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = document.getElementById('admin-name').value;
+      const password = document.getElementById('admin-password').value;
+      
+      const success = await Auth.login('관리자', name, password);
+      if (success) window.location.href = 'dashboard.html';
     });
 
     document.getElementById('register-form').addEventListener('submit', async (e) => {

@@ -11,7 +11,7 @@ const API = {
     const options = {
       method: method,
       headers: {
-        'Content-Type': 'text/plain;charset=utf-8', // GAS requires text/plain for CORS preflight avoidance sometimes
+        'Content-Type': 'application/x-www-form-urlencoded',
       }
     };
     
@@ -20,7 +20,7 @@ const API = {
     }
 
     if (method === 'POST') {
-      options.body = JSON.stringify(payload);
+      options.body = new URLSearchParams({ data: JSON.stringify(payload) });
     }
 
     let url = CONFIG.GAS_URL;
