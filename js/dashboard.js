@@ -85,7 +85,6 @@ async function renderLeaderDashboard(container, teamName) {
       <div class="glass-card stat-card"><div class="spinner"></div></div>
     </div>
   `;
-  // Similar logic fetching team stats...
   try {
     const res = await API.fetchGAS('getStats', { teamName });
     const stats = res.data || { real: 0, accum: 0, count: 0, rate: 0 };
@@ -95,13 +94,17 @@ async function renderLeaderDashboard(container, teamName) {
         <div class="value">${Utils.formatNumber(stats.real)}명</div>
       </div>
       <div class="glass-card stat-card">
+        <h3>팀 건수</h3>
+        <div class="value">${Utils.formatNumber(stats.count)}건</div>
+      </div>
+      <div class="glass-card stat-card">
         <h3>팀 연인원</h3>
         <div class="value">${Utils.formatNumber(stats.accum)}명</div>
       </div>
       <div class="glass-card stat-card">
         <h3>팀 달성률</h3>
         <div class="value">${stats.rate}%</div>
-        <div class="progress-container"><div class="progress-bar" style="width: ${stats.rate}%"></div></div>
+        <div class="progress-container"><div class="progress-bar" style="width: ${Math.min(stats.rate, 100)}%"></div></div>
       </div>
     `;
   } catch(e){}

@@ -156,3 +156,47 @@ async function saveProgram() {
     await loadPrograms();
   } catch (e) {}
 }
+
+window.downloadProgramsCSV = function() {
+  if (allPrograms.length === 0) {
+    Utils.showToast('다운로드할 사업 데이터가 없습니다.', 'error');
+    return;
+  }
+
+  const headers = ['팀명', '사업분류', '세부사업분류', '사업명', '실적유형', '상태', '목표_건수', '목표_실인원', '목표_연인원'];
+  const escapeCSV = (val) => {
+    const str = String(val == null ? '' : val);
+    if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+      return '"' + str.replace(/"/g, '""') + '"';
+    }
+    return str;
+  };
+
+  let csv = headers.map(escapeCSV).join(',') + '\n';
+  allPrograms.forEach(p => {
+    csv += [
+      p.팀명,
+      p.사업분류,
+      p.세부사업분류,
+      p.사업명,
+      p.실적유형,
+      p.상태 || '활성',
+      p.목표_건수 || 0,
+      p.목표_실인원 || 0,
+      p.목표_연인원 || 0
+    ].map(escapeCSV).join(',') + '\n';
+  });
+
+  // BOM(Byte Order Mark)을 앞에 추가하여 엑셀에서 한글 깨짐 방지
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  const today = Utils.formatDate(new Date());
+  link.href = url;
+  link.download = `사업목록_${today}.csv`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+  Utils.showToast('CSV 파일이 다운로드되었습니다.', 'success');
+}

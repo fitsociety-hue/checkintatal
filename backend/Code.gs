@@ -447,56 +447,168 @@ function recalcStatsDirectly() {
 }
 
 function getStats(teamName, year, month) {
-  // 실제로는 실적_집계 시트를 쿼리하지만, 예시로 임의의 로직 반환
+  const now = new Date();
+  const targetYear = year || now.getFullYear();
+  const targetMonth = month || (now.getMonth() + 1);
+
   const progs = getSheetDataAsJSON('사업_마스터').filter(p => p.팀명 === teamName);
-  
-  // 출석 데이터 분석 로직 생략 (간소화)
-  return {
-    real: 150,
-    accum: 1200,
-    count: 45,
-    rate: 85,
-    programs: progs.map(p => ({
+  const attData = getSheetDataAsJSON('출석_원장');
+
+  // 해당 팀의 사업ID 목록
+  const teamProgIds = progs.map(p => p.사업ID);
+
+  // 해당 월의 출석 데이터만 필터
+  const monthAtt = attData.filter(a => {
+    if (!teamProgIds.includes(a.사업ID)) return false;
+    const d = new Date(a.날짜);
+    return d.getFullYear() === targetYear && (d.getMonth() + 1) === targetMonth;
+  });
+
+  // 팀 전체 집계
+  const uniqueNames = new Set();
+  let totalCount = 0;
+  let totalAccum = 0;
+
+  monthAtt.forEach(a => {
+    if (a.출석여부 === 'O' && a.이름 !== '건수입력용_무명') {
+      uniqueNames.add(a.이름);
+    }
+    totalCount += Number(a.건수) || 0;
+    if (a.출석여부 === 'O') totalAccum++;
+  });
+
+  const realCount = uniqueNames.size;
+
+  // 목표 합산
+  let goalReal = 0, goalAccum = 0, goalCount = 0;
+  progs.forEach(p => {
+    goalReal += Number(p.목표_실인원) || 0;
+    goalAccum += Number(p.목표_연인원) || 0;
+    goalCount += Number(p.목표_건수) || 0;
+  });
+
+  // 달성률 (목표 연인원 기준, 목표가 0이면 0%)
+  const rate = goalAccum > 0 ? Math.round((totalAccum / goalAccum) * 100) : 0;
+
+  // 사업별 상세
+  const programStats = progs.map(p => {
+    const progAtt = monthAtt.filter(a => a.사업ID === p.사업ID);
+    const pNames = new Set();
+    let pCount = 0, pAccum = 0;
+    progAtt.forEach(a => {
+      if (a.출석여부 === 'O' && a.이름 !== '건수입력용_무명') pNames.add(a.이름);
+      pCount += Number(a.건수) || 0;
+      if (a.출석여부 === 'O') pAccum++;
+    });
+    const gReal = Number(p.목표_실인원) || 0;
+    const gCount = Number(p.목표_건수) || 0;
+    const gAccum = Number(p.목표_연인원) || 0;
+    return {
       팀명: p.팀명,
       사업명: p.사업명,
-      실인원: Math.floor(Math.random() * 50),
-      건수: Math.floor(Math.random() * 10),
-      연인원: Math.floor(Math.random() * 200),
-      목표대비_실인원: Math.floor(Math.random() * 40 + 80),
-      목표대비_건수: Math.floor(Math.random() * 40 + 80),
-      목표대비_연인원: Math.floor(Math.random() * 40 + 80)
-    }))
+      실인원: pNames.size,
+      건수: pCount,
+      연인원: pAccum,
+      '목표대비_실인원': gReal > 0 ? Math.round((pNames.size / gReal) * 100) : 0,
+      '목표대비_건수': gCount > 0 ? Math.round((pCount / gCount) * 100) : 0,
+      '목표대비_연인원': gAccum > 0 ? Math.round((pAccum / gAccum) * 100) : 0
+    };
+  });
+
+  return {
+    real: realCount,
+    accum: totalAccum,
+    count: totalCount,
+    rate: rate,
+    programs: programStats
   };
 }
 
 function getAllStats(year, month) {
+  const now = new Date();
+  const targetYear = year || now.getFullYear();
+  const targetMonth = month || (now.getMonth() + 1);
+
   const teams = ['지역연계팀', '맞춤지원팀', '건강문화팀', '성장지원팀', '전략기획팀', '미래경영팀'];
-  const teamStats = teams.map(t => ({ team: t, rate: Math.floor(Math.random() * 40 + 60) }));
-  
-  const progs = getSheetDataAsJSON('사업_마스터');
-  
-  return {
-    totalRealCount: 1240,
-    totalItemCount: 342,
-    totalAccumCount: 8900,
-    avgAchieveRate: 91,
-    teamStats: teamStats,
-    programs: progs.map(p => ({
+  const allProgs = getSheetDataAsJSON('사업_마스터');
+  const attData = getSheetDataAsJSON('출석_원장');
+
+  // 해당 월 출석만 필터
+  const monthAtt = attData.filter(a => {
+    const d = new Date(a.날짜);
+    return d.getFullYear() === targetYear && (d.getMonth() + 1) === targetMonth;
+  });
+
+  let grandReal = new Set();
+  let grandAccum = 0;
+  let grandCount = 0;
+  let grandGoalAccum = 0;
+
+  const teamStats = teams.map(team => {
+    const teamProgs = allProgs.filter(p => p.팀명 === team);
+    const teamProgIds = teamProgs.map(p => p.사업ID);
+    const teamAtt = monthAtt.filter(a => teamProgIds.includes(a.사업ID));
+
+    const names = new Set();
+    let tAccum = 0, tCount = 0;
+    teamAtt.forEach(a => {
+      if (a.출석여부 === 'O' && a.이름 !== '건수입력용_무명') {
+        names.add(a.이름);
+        grandReal.add(a.이름);
+      }
+      tCount += Number(a.건수) || 0;
+      if (a.출석여부 === 'O') { tAccum++; grandAccum++; }
+    });
+    grandCount += tCount;
+
+    let gAccum = 0;
+    teamProgs.forEach(p => { gAccum += Number(p.목표_연인원) || 0; });
+    grandGoalAccum += gAccum;
+
+    const rate = gAccum > 0 ? Math.round((tAccum / gAccum) * 100) : 0;
+    return { team: team, rate: rate };
+  });
+
+  const avgRate = grandGoalAccum > 0 ? Math.round((grandAccum / grandGoalAccum) * 100) : 0;
+
+  // 사업별 상세
+  const programStats = allProgs.map(p => {
+    const progAtt = monthAtt.filter(a => a.사업ID === p.사업ID);
+    const pNames = new Set();
+    let pCount = 0, pAccum = 0;
+    progAtt.forEach(a => {
+      if (a.출석여부 === 'O' && a.이름 !== '건수입력용_무명') pNames.add(a.이름);
+      pCount += Number(a.건수) || 0;
+      if (a.출석여부 === 'O') pAccum++;
+    });
+    const gReal = Number(p.목표_실인원) || 0;
+    const gCount = Number(p.목표_건수) || 0;
+    const gAccum = Number(p.목표_연인원) || 0;
+    return {
       팀명: p.팀명,
       사업명: p.사업명,
-      실인원: Math.floor(Math.random() * 50),
-      건수: Math.floor(Math.random() * 10),
-      연인원: Math.floor(Math.random() * 200),
-      목표대비_실인원: Math.floor(Math.random() * 40 + 80),
-      목표대비_건수: Math.floor(Math.random() * 40 + 80),
-      목표대비_연인원: Math.floor(Math.random() * 40 + 80)
-    }))
+      실인원: pNames.size,
+      건수: pCount,
+      연인원: pAccum,
+      '목표대비_실인원': gReal > 0 ? Math.round((pNames.size / gReal) * 100) : 0,
+      '목표대비_건수': gCount > 0 ? Math.round((pCount / gCount) * 100) : 0,
+      '목표대비_연인원': gAccum > 0 ? Math.round((pAccum / gAccum) * 100) : 0
+    };
+  });
+
+  return {
+    totalRealCount: grandReal.size,
+    totalItemCount: grandCount,
+    totalAccumCount: grandAccum,
+    avgAchieveRate: avgRate,
+    teamStats: teamStats,
+    programs: programStats
   };
 }
 
 function getPersonalStats(staffId, year, month) {
   const staff = getSheetDataAsJSON('직원_마스터').find(s => s.직원ID === staffId);
-  const progIds = staff ? (staff.담당사업IDs || '').split(',') : [];
+  const progIds = staff ? (staff.담당사업IDs || '').split(',').map(id => id.trim()).filter(Boolean) : [];
   const progs = getSheetDataAsJSON('사업_마스터').filter(p => progIds.includes(p.사업ID));
   
   return {

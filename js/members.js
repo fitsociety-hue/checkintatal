@@ -156,3 +156,43 @@ async function saveMember() {
     await loadMembers();
   } catch (e) {}
 }
+
+window.downloadMembersCSV = function() {
+  if (allMembers.length === 0) {
+    Utils.showToast('다운로드할 회원 데이터가 없습니다.', 'error');
+    return;
+  }
+
+  const headers = ['이름', '시작일', '장애비장애구분', '상태', '메모'];
+  const escapeCSV = (val) => {
+    const str = String(val == null ? '' : val);
+    if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+      return '"' + str.replace(/"/g, '""') + '"';
+    }
+    return str;
+  };
+
+  let csv = headers.map(escapeCSV).join(',') + '\n';
+  allMembers.forEach(m => {
+    csv += [
+      m.이름,
+      Utils.formatDate(m.시작일),
+      m.장애비장애구분,
+      m.상태,
+      m.메모 || ''
+    ].map(escapeCSV).join(',') + '\n';
+  });
+
+  // BOM(Byte Order Mark)을 앞에 추가하여 엑셀에서 한글 깨짐 방지
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  const today = Utils.formatDate(new Date());
+  link.href = url;
+  link.download = `회원목록_${today}.csv`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+  Utils.showToast('CSV 파일이 다운로드되었습니다.', 'success');
+}
