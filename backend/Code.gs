@@ -127,15 +127,27 @@ function getSheetDataAsJSON(sheetName) {
   const sheet = getSheet(sheetName);
   if (!sheet) return [];
   const data = sheet.getDataRange().getValues();
+  if (data.length === 0) return [];
+  
+  const expectedHeaders = getHeadersForSheet(sheetName);
+  const currentHeaders = data[0].map(h => String(h).trim());
+  
+  const hasValidHeaders = expectedHeaders.length > 0 && currentHeaders[0] === expectedHeaders[0];
+  
+  if (!hasValidHeaders) {
+    sheet.insertRowBefore(1);
+    sheet.getRange(1, 1, 1, expectedHeaders.length).setValues([expectedHeaders]).setFontWeight("bold").setBackground("#f3f3f3");
+    sheet.setFrozenRows(1);
+    return getSheetDataAsJSON(sheetName);
+  }
+
   if (data.length < 2) return [];
   
-  const headers = data[0];
   const rows = [];
   for (let i = 1; i < data.length; i++) {
     let obj = {};
-    for (let j = 0; j < headers.length; j++) {
-      const key = String(headers[j]).trim();
-      obj[key] = data[i][j];
+    for (let j = 0; j < expectedHeaders.length; j++) {
+      obj[expectedHeaders[j]] = data[i][j];
     }
     rows.push(obj);
   }
