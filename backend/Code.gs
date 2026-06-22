@@ -4,10 +4,7 @@
 
 function doOptions(e) {
   return ContentService.createTextOutput('')
-    .setMimeType(ContentService.MimeType.TEXT)
-    .addHeader('Access-Control-Allow-Origin', 'https://fitsociety-hue.github.io')
-    .addHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-    .addHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    .setMimeType(ContentService.MimeType.TEXT);
 }
 
 function doPost(e) {
@@ -85,10 +82,7 @@ function handleRequest(e, method) {
 
 function createResponse(data) {
   return ContentService.createTextOutput(JSON.stringify(data))
-    .setMimeType(ContentService.MimeType.JSON)
-    .addHeader('Access-Control-Allow-Origin', 'https://fitsociety-hue.github.io')
-    .addHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-    .addHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    .setMimeType(ContentService.MimeType.JSON);
 }
 
 // ==============================================================================
