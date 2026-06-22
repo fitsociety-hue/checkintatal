@@ -95,7 +95,32 @@ function createResponse(data) {
 function getSheet(sheetName) {
   const ssId = PropertiesService.getScriptProperties().getProperty('SPREADSHEET_ID');
   const ss = ssId ? SpreadsheetApp.openById(ssId) : SpreadsheetApp.getActiveSpreadsheet();
-  return ss.getSheetByName(sheetName);
+  if (!ss) throw new Error('연결된 구글 시트를 찾을 수 없습니다.');
+  
+  let sheet = ss.getSheetByName(sheetName);
+  
+  if (!sheet) {
+    sheet = ss.insertSheet(sheetName);
+    const headers = getHeadersForSheet(sheetName);
+    if (headers.length > 0) {
+      sheet.appendRow(headers);
+      sheet.getRange(1, 1, 1, headers.length).setFontWeight("bold").setBackground("#f3f3f3");
+      sheet.setFrozenRows(1);
+    }
+  }
+  
+  return sheet;
+}
+
+function getHeadersForSheet(sheetName) {
+  switch (sheetName) {
+    case '직원_마스터': return ['직원ID', '이름', '팀명', '직위', '비밀번호', '상태', '담당사업IDs'];
+    case '사업_마스터': return ['팀명', '사업분류', '세부사업분류', '사업명', '실적유형', '상태', '목표_건수', '목표_실인원', '목표_연인원', '담당자', '사업ID'];
+    case '회원_마스터': return ['이름', '시작일', '상태', '장애비장애구분', '메모'];
+    case '출석_원장': return ['출석ID', '날짜', '사업ID', '사업명', '팀명', '이름', '출석여부', '건수', '입력방식', '입력자', '입력시각'];
+    case '실적_집계': return ['팀명', '사업명', '년도', '월', '실인원', '건수', '연인원', '목표대비_실인원(%)', '목표대비_건수(%)', '목표대비_연인원(%)'];
+    default: return [];
+  }
 }
 
 function getSheetDataAsJSON(sheetName) {
