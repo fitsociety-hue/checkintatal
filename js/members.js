@@ -94,6 +94,7 @@ function renderTable() {
       <td>${m.이름}</td>
       <td>${Utils.formatDate(m.시작일)}</td>
       <td><span class="badge ${m.장애비장애구분 === '장애' ? 'badge-warning' : 'badge-neutral'}">${m.장애비장애구분}</span></td>
+      <td><span class="badge ${m.구분 === '그룹' ? 'badge-primary' : 'badge-neutral'}">${m.구분 || '개별'}</span></td>
       <td><span class="badge ${m.상태 === '활성' ? 'badge-success' : (m.상태 === '보류' ? 'badge-warning' : 'badge-error')}">${m.상태}</span></td>
       <td>${m.사업명 || ''}</td>
       <td>${m.메모 || ''}</td>
@@ -113,6 +114,7 @@ window.openMemberModal = function() {
   document.getElementById('member-form').reset();
   document.getElementById('original-name').value = '';
   document.getElementById('mem-start').value = Utils.formatDate(new Date());
+  document.getElementById('mem-class').value = '개별';
   document.getElementById('member-modal').classList.add('active');
 }
 
@@ -130,6 +132,7 @@ window.editMember = function(name) {
   document.getElementById('mem-start').value = Utils.formatDate(m.시작일);
   document.getElementById('mem-status').value = m.상태;
   document.getElementById('mem-type').value = m.장애비장애구분;
+  document.getElementById('mem-class').value = m.구분 || '개별';
   document.getElementById('mem-programs').value = m.사업명 || '';
   document.getElementById('mem-memo').value = m.메모 || '';
   
@@ -143,6 +146,7 @@ async function saveMember() {
     시작일: document.getElementById('mem-start').value,
     상태: document.getElementById('mem-status').value,
     장애비장애구분: document.getElementById('mem-type').value,
+    구분: document.getElementById('mem-class').value,
     사업명: document.getElementById('mem-programs').value,
     메모: document.getElementById('mem-memo').value
   };
@@ -166,7 +170,7 @@ window.downloadMembersCSV = function() {
     return;
   }
 
-  const headers = ['이름', '시작일', '장애비장애구분', '상태', '사업명', '메모'];
+  const headers = ['이름', '시작일', '장애비장애구분', '구분', '상태', '사업명', '메모'];
   const escapeCSV = (val) => {
     const str = String(val == null ? '' : val);
     if (str.includes(',') || str.includes('"') || str.includes('\n')) {
@@ -181,6 +185,7 @@ window.downloadMembersCSV = function() {
       m.이름,
       Utils.formatDate(m.시작일),
       m.장애비장애구분,
+      m.구분 || '개별',
       m.상태,
       m.사업명 || '',
       m.메모 || ''
