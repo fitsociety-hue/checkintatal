@@ -134,7 +134,8 @@ function getSheetDataAsJSON(sheetName) {
   for (let i = 1; i < data.length; i++) {
     let obj = {};
     for (let j = 0; j < headers.length; j++) {
-      obj[headers[j]] = data[i][j];
+      const key = String(headers[j]).trim();
+      obj[key] = data[i][j];
     }
     rows.push(obj);
   }
@@ -149,7 +150,11 @@ function login(team, name, password) {
   const staffData = getSheetDataAsJSON('직원_마스터');
   
   // 관리자는 팀 구분을 안할 수 있으므로, 팀 필터링 적용 혹은 이름+비번만으로 매칭할 수 있음
-  const user = staffData.find(s => s.이름 === name && (s.비밀번호 == password || s.비밀번호해시 == password) && s.상태 !== '비활성');
+  const user = staffData.find(s => 
+    String(s.이름 || '').trim() === String(name || '').trim() && 
+    (String(s.비밀번호 || '').trim() === String(password || '').trim() || String(s.비밀번호해시 || '').trim() === String(password || '').trim()) && 
+    String(s.상태 || '').trim() !== '비활성'
+  );
   
   if (!user) {
     // 관리자의 경우 하드코딩된 마스터 계정 허용 (초기 세팅용)
