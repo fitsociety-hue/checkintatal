@@ -45,10 +45,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     } else {
       membersDiv.classList.remove('hidden');
       
-      // Fetch members for the program
+      // Fetch members for the program (사업명 기반 자동 필터링)
       try {
-        const res = await API.fetchGAS('getMembers', { programId: program.사업ID });
+        const res = await API.fetchGAS('getMembers', { programId: program.사업ID, programName: program.사업명 });
         currentMembers = res.data || [];
+        
+        // 사업명 매칭 회원이 없으면 전체 활성 회원 로드
+        if (currentMembers.length === 0) {
+          const allRes = await API.fetchGAS('getMembers', { status: 'all' });
+          currentMembers = (allRes.data || []).filter(m => m.상태 === '활성');
+        }
         
         // Also fetch today's attendance to pre-fill
         const attRes = await API.fetchGAS('getAttendanceSheet', { programId: program.사업ID, date: dateStr });

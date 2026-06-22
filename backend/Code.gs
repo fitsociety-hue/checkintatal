@@ -47,7 +47,7 @@ function handleRequest(e, method) {
       case 'register': result = registerUser(payload.team, payload.name, payload.password, payload.role); break;
       
       // 회원 관리
-      case 'getMembers': result = getMembers(payload.programId, payload.status); break;
+      case 'getMembers': result = getMembers(payload.programId, payload.status, payload.programName); break;
       case 'addMember': result = addMember(payload.data); break;
       case 'updateMember': result = updateMember(payload.name, payload.data); break;
       case 'importMembersCSV': result = importMembersCSV(payload.csvData); break;
@@ -116,7 +116,7 @@ function getHeadersForSheet(sheetName) {
   switch (sheetName) {
     case '직원_마스터': return ['직원ID', '이름', '팀명', '직위', '비밀번호', '상태', '담당사업IDs'];
     case '사업_마스터': return ['팀명', '사업분류', '세부사업분류', '사업명', '실적유형', '상태', '목표_건수', '목표_실인원', '목표_연인원', '담당자', '사업ID'];
-    case '회원_마스터': return ['이름', '시작일', '상태', '장애비장애구분', '메모'];
+    case '회원_마스터': return ['이름', '시작일', '상태', '장애비장애구분', '메모', '사업명'];
     case '출석_원장': return ['출석ID', '날짜', '사업ID', '사업명', '팀명', '이름', '출석여부', '건수', '입력방식', '입력자', '입력시각'];
     case '실적_집계': return ['팀명', '사업명', '년도', '월', '실인원', '건수', '연인원', '목표대비_실인원(%)', '목표대비_건수(%)', '목표대비_연인원(%)'];
     default: return [];
@@ -285,19 +285,25 @@ function importProgramsCSV(csvData) {
 // 회원 관리
 // ==============================================================================
 
-function getMembers(programId, status) {
+function getMembers(programId, status, programName) {
   let members = getSheetDataAsJSON('회원_마스터');
   if (status && status !== 'all') {
     members = members.filter(m => m.상태 === status);
   }
-  // 특정 사업에 종속된 회원을 거를 경우 필터링 추가 가능 (현재는 전체 회원 풀 공유)
+  // 사업명으로 필터링 (회원의 사업명 필드에 해당 사업명이 포함되어 있는지 확인)
+  if (programName) {
+    members = members.filter(m => {
+      const memberPrograms = String(m.사업명 || '').split(',').map(s => s.trim());
+      return memberPrograms.includes(programName);
+    });
+  }
   return members;
 }
 
 function addMember(data) {
   const sheet = getSheet('회원_마스터');
   sheet.appendRow([
-    data.이름, data.시작일, data.상태 || '활성', data.장애비장애구분 || '비장애', data.메모 || ''
+    data.이름, data.시작일, data.상태 || '활성', data.장애비장애구분 || '비장애', data.메모 || '', data.사업명 || ''
   ]);
   return true;
 }
@@ -307,8 +313,8 @@ function updateMember(name, data) {
   const vals = sheet.getDataRange().getValues();
   for (let i = 1; i < vals.length; i++) {
     if (vals[i][0] === name) {
-      sheet.getRange(i + 1, 1, 1, 5).setValues([[
-        data.이름, data.시작일, data.상태, data.장애비장애구분, data.메모
+      sheet.getRange(i + 1, 1, 1, 6).setValues([[
+        data.이름, data.시작일, data.상태, data.장애비장애구분, data.메모, data.사업명 || ''
       ]]);
       return true;
     }
@@ -320,7 +326,7 @@ function importMembersCSV(csvData) {
   const sheet = getSheet('회원_마스터');
   csvData.forEach(row => {
     sheet.appendRow([
-      row.이름, row.시작일, row.상태 || '활성', row.장애비장애구분, row.메모 || ''
+      row.이름, row.시작일, row.상태 || '활성', row.장애비장애구분, row.메모 || '', row.사업명 || ''
     ]);
   });
   return true;
