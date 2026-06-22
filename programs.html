@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>사업 관리 - 강동어울림복지관</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="app-container">
+    <nav class="nav-sidebar">
+      <div class="logo">강동어울림복지관</div>
+      <a href="dashboard.html" class="nav-item">대시보드</a>
+      <a href="attendance.html" class="nav-item">출석체크</a>
+      <a href="members.html" class="nav-item">회원 관리</a>
+      <a href="programs.html" class="nav-item active">사업 관리</a>
+      <a href="stats.html" class="nav-item">실적 현황</a>
+    </nav>
+    
+    <main class="main-content">
+      <header class="topbar">
+        <div>출석부 시스템</div>
+        <div class="flex items-center gap-2">
+          <span id="topbar-team-name" class="badge badge-neutral"></span>
+          <span id="topbar-user-name"></span>
+          <button onclick="Auth.logout()" class="btn-ghost" style="padding: 4px 8px;">로그아웃</button>
+        </div>
+      </header>
+      
+      <div class="content-body">
+        <div class="flex justify-between items-center mb-3">
+          <h2>사업 관리</h2>
+          <div>
+            <button class="btn-secondary" onclick="document.getElementById('csv-upload-input').click()">CSV 업로드</button>
+            <input type="file" id="csv-upload-input" accept=".csv" class="hidden">
+            <button class="btn-primary" onclick="openProgramModal()">+ 사업 추가</button>
+          </div>
+        </div>
+        
+        <div class="mb-3 flex gap-1" id="team-tabs" style="overflow-x: auto;">
+          <!-- Tabs injected here -->
+        </div>
+
+        <div class="grid-cards" id="programs-grid">
+          <p>데이터를 불러오는 중입니다...</p>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Program Modal -->
+  <div class="modal-overlay" id="program-modal">
+    <div class="glass-card modal-glass">
+      <div class="modal-header">
+        <h3 id="modal-title">사업 추가</h3>
+        <button class="btn-ghost" onclick="closeProgramModal()">X</button>
+      </div>
+      <form id="program-form">
+        <input type="hidden" id="original-id">
+        <div class="form-group">
+          <label class="form-label">팀명</label>
+          <select id="prog-team" class="form-select" required>
+            <option value="지역연계팀">지역연계팀</option>
+            <option value="맞춤지원팀">맞춤지원팀</option>
+            <option value="건강문화팀">건강문화팀</option>
+            <option value="성장지원팀">성장지원팀</option>
+            <option value="전략기획팀">전략기획팀</option>
+            <option value="미래경영팀">미래경영팀</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">사업분류</label>
+          <input type="text" id="prog-cat1" class="form-input" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">세부사업분류</label>
+          <input type="text" id="prog-cat2" class="form-input" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">사업명</label>
+          <input type="text" id="prog-name" class="form-input" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">실적유형</label>
+          <select id="prog-type" class="form-select" required>
+            <option value="건수">건수만</option>
+            <option value="실인원+연인원">실인원+연인원</option>
+            <option value="실인원+건수">실인원+건수</option>
+          </select>
+        </div>
+        <div class="flex gap-2">
+          <div class="form-group flex-1">
+            <label class="form-label">목표 실인원</label>
+            <input type="number" id="prog-goal-real" class="form-input" value="0">
+          </div>
+          <div class="form-group flex-1">
+            <label class="form-label">목표 연인원</label>
+            <input type="number" id="prog-goal-accum" class="form-input" value="0">
+          </div>
+          <div class="form-group flex-1">
+            <label class="form-label">목표 건수</label>
+            <input type="number" id="prog-goal-count" class="form-input" value="0">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">상태</label>
+          <select id="prog-status" class="form-select">
+            <option value="활성">활성</option>
+            <option value="보류">보류</option>
+            <option value="종결">종결</option>
+          </select>
+        </div>
+        <div class="flex justify-between mt-3">
+          <button type="button" class="btn-secondary" onclick="closeProgramModal()">취소</button>
+          <button type="submit" class="btn-primary">저장</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/programs.js"></script>
+  <script src="js/programs_page.js"></script>
+</body>
+</html>

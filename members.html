@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>회원 관리 - 강동어울림복지관</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="app-container">
+    <nav class="nav-sidebar">
+      <div class="logo">강동어울림복지관</div>
+      <a href="dashboard.html" class="nav-item">대시보드</a>
+      <a href="attendance.html" class="nav-item">출석체크</a>
+      <a href="members.html" class="nav-item active">회원 관리</a>
+      <a href="programs.html" class="nav-item">사업 관리</a>
+      <a href="stats.html" class="nav-item">실적 현황</a>
+    </nav>
+    
+    <main class="main-content">
+      <header class="topbar">
+        <div>출석부 시스템</div>
+        <div class="flex items-center gap-2">
+          <span id="topbar-team-name" class="badge badge-neutral"></span>
+          <span id="topbar-user-name"></span>
+          <button onclick="Auth.logout()" class="btn-ghost" style="padding: 4px 8px;">로그아웃</button>
+        </div>
+      </header>
+      
+      <div class="content-body">
+        <div class="flex justify-between items-center mb-3">
+          <h2>회원 관리</h2>
+          <div>
+            <button class="btn-secondary" onclick="document.getElementById('csv-upload-input').click()">CSV 업로드</button>
+            <input type="file" id="csv-upload-input" accept=".csv" class="hidden">
+            <button class="btn-primary" onclick="openMemberModal()">+ 회원 추가</button>
+          </div>
+        </div>
+        
+        <div class="glass-card mb-3">
+          <div class="flex gap-2 mb-2 items-center flex-wrap">
+            <input type="text" id="filter-name" class="form-input" placeholder="이름 검색" style="max-width: 150px;">
+            <select id="filter-status" class="form-select" style="max-width: 120px;">
+              <option value="">상태 전체</option>
+              <option value="활성">활성</option>
+              <option value="보류">보류</option>
+              <option value="종결">종결</option>
+            </select>
+            <select id="filter-type" class="form-select" style="max-width: 150px;">
+              <option value="">장애구분 전체</option>
+              <option value="장애">장애</option>
+              <option value="비장애">비장애</option>
+            </select>
+            <button id="btn-search" class="btn-secondary">검색</button>
+            <a href="https://docs.google.com/spreadsheets/" target="_blank" class="btn-ghost" style="margin-left:auto; font-size:14px; text-decoration:none;">구글 시트 열기</a>
+          </div>
+          
+          <div class="table-container">
+            <table class="table-glass" id="members-table">
+              <thead>
+                <tr>
+                  <th>이름</th>
+                  <th>시작일</th>
+                  <th>구분</th>
+                  <th>상태</th>
+                  <th>메모</th>
+                  <th>관리</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td colspan="6" class="text-center">데이터를 불러오는 중입니다...</td></tr>
+              </tbody>
+            </table>
+          </div>
+          
+          <!-- Pagination -->
+          <div class="flex justify-between items-center mt-2">
+            <span id="page-info" class="text-sub"></span>
+            <div class="flex gap-1">
+              <button id="btn-prev" class="btn-secondary">&lt;</button>
+              <button id="btn-next" class="btn-secondary">&gt;</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Member Modal -->
+  <div class="modal-overlay" id="member-modal">
+    <div class="glass-card modal-glass">
+      <div class="modal-header">
+        <h3 id="modal-title">회원 추가</h3>
+        <button class="btn-ghost" onclick="closeMemberModal()">X</button>
+      </div>
+      <form id="member-form">
+        <input type="hidden" id="original-name">
+        <div class="form-group">
+          <label class="form-label">이름</label>
+          <input type="text" id="mem-name" class="form-input" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">시작일</label>
+          <input type="date" id="mem-start" class="form-input" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">상태</label>
+          <select id="mem-status" class="form-select" required>
+            <option value="활성">활성</option>
+            <option value="보류">보류</option>
+            <option value="종결">종결</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">장애비장애구분</label>
+          <select id="mem-type" class="form-select" required>
+            <option value="장애">장애</option>
+            <option value="비장애">비장애</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">메모</label>
+          <input type="text" id="mem-memo" class="form-input">
+        </div>
+        <div class="flex justify-between mt-3">
+          <button type="button" class="btn-secondary" onclick="closeMemberModal()">취소</button>
+          <button type="submit" class="btn-primary">저장</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/members.js"></script>
+</body>
+</html>

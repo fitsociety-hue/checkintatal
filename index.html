@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>강동어울림복지관 출석부</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    body {
+      align-items: center;
+      justify-content: center;
+    }
+    .login-card {
+      width: 100%;
+      max-width: 420px;
+      margin: 20px;
+    }
+    .login-title {
+      text-align: center;
+      margin-bottom: 24px;
+      color: var(--color-primary-dark);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="glass-card login-card">
+    <div class="login-title">
+      <h2>강동어울림복지관 출석부</h2>
+      <p style="font-size: 14px; color: var(--color-text-sub); margin-top: 5px;">관리자 및 직원 로그인</p>
+    </div>
+    
+    <form id="login-form">
+      <div class="form-group">
+        <label class="form-label">소속 팀</label>
+        <select id="team" class="form-select" required>
+          <option value="">팀 선택</option>
+          <option value="관리자">관리자 (전체)</option>
+          <option value="지역연계팀">지역연계팀</option>
+          <option value="맞춤지원팀">맞춤지원팀</option>
+          <option value="건강문화팀">건강문화팀</option>
+          <option value="성장지원팀">성장지원팀</option>
+          <option value="전략기획팀">전략기획팀</option>
+          <option value="미래경영팀">미래경영팀</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">이름</label>
+        <input type="text" id="name" class="form-input" placeholder="이름을 입력하세요" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">비밀번호</label>
+        <input type="password" id="password" class="form-input" placeholder="비밀번호를 입력하세요" required>
+      </div>
+      <button type="submit" class="btn-primary" style="width: 100%; margin-top: 10px;">로그인</button>
+    </form>
+    
+    <div class="text-center mt-3">
+      <a href="#" class="btn-ghost" style="font-size: 14px; text-decoration: none;">회원가입 요청 (관리자 승인 필요)</a>
+    </div>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script>
+    // If already logged in, redirect to dashboard
+    if (localStorage.getItem('jwt_token')) {
+      window.location.href = 'dashboard.html';
+    }
+
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const team = document.getElementById('team').value;
+      const name = document.getElementById('name').value;
+      const password = document.getElementById('password').value;
+      
+      const success = await Auth.login(team, name, password);
+      if (success) {
+        window.location.href = 'dashboard.html';
+      }
+    });
+  </script>
+</body>
+</html>

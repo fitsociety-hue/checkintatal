@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>실적 현황 - 강동어울림복지관</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+  <div class="app-container">
+    <nav class="nav-sidebar">
+      <div class="logo">강동어울림복지관</div>
+      <a href="dashboard.html" class="nav-item">대시보드</a>
+      <a href="attendance.html" class="nav-item">출석체크</a>
+      <a href="members.html" class="nav-item">회원 관리</a>
+      <a href="programs.html" class="nav-item">사업 관리</a>
+      <a href="stats.html" class="nav-item active">실적 현황</a>
+    </nav>
+    
+    <main class="main-content">
+      <header class="topbar">
+        <div>출석부 시스템</div>
+        <div class="flex items-center gap-2">
+          <span id="topbar-team-name" class="badge badge-neutral"></span>
+          <span id="topbar-user-name"></span>
+          <button onclick="Auth.logout()" class="btn-ghost" style="padding: 4px 8px;">로그아웃</button>
+        </div>
+      </header>
+      
+      <div class="content-body">
+        <div class="flex justify-between items-center mb-3">
+          <h2>실적 현황</h2>
+          <div>
+            <button class="btn-primary" id="btn-export">엑셀 다운로드</button>
+          </div>
+        </div>
+        
+        <div class="glass-card mb-3">
+          <div class="flex gap-2 items-center">
+            <select id="filter-year" class="form-select" style="max-width: 120px;"></select>
+            <select id="filter-month" class="form-select" style="max-width: 100px;">
+              <option value="all">전체 월</option>
+              <option value="1">1월</option>
+              <option value="2">2월</option>
+              <option value="3">3월</option>
+              <option value="4">4월</option>
+              <option value="5">5월</option>
+              <option value="6">6월</option>
+              <option value="7">7월</option>
+              <option value="8">8월</option>
+              <option value="9">9월</option>
+              <option value="10">10월</option>
+              <option value="11">11월</option>
+              <option value="12">12월</option>
+            </select>
+            <button id="btn-load-stats" class="btn-secondary">조회</button>
+          </div>
+        </div>
+
+        <div class="grid-cards mb-3" id="stats-summary">
+          <!-- Summary cards -->
+        </div>
+
+        <div class="glass-card mb-3" id="chart-container" class="hidden">
+          <h3 class="mb-2">팀별 달성률 추이</h3>
+          <canvas id="stats-chart"></canvas>
+        </div>
+
+        <div class="glass-card mb-3">
+          <h3 class="mb-2">사업별 상세 실적</h3>
+          <div class="table-container">
+            <table class="table-glass" id="stats-table">
+              <thead>
+                <tr>
+                  <th>팀명</th>
+                  <th>사업명</th>
+                  <th>실인원</th>
+                  <th>건수</th>
+                  <th>연인원</th>
+                  <th>실인원 달성률</th>
+                  <th>건수 달성률</th>
+                  <th>연인원 달성률</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td colspan="8" class="text-center">조회 버튼을 눌러주세요.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/stats.js"></script>
+</body>
+</html>

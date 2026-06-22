@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>출석체크 - 강동어울림복지관</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdn.rawgit.com/davidshimjs/qrcodejs/gh-pages/qrcode.min.js"></script>
+</head>
+<body>
+  <div class="app-container">
+    <nav class="nav-sidebar">
+      <div class="logo">강동어울림복지관</div>
+      <a href="dashboard.html" class="nav-item">대시보드</a>
+      <a href="attendance.html" class="nav-item active">출석체크</a>
+      <a href="members.html" class="nav-item">회원 관리</a>
+      <a href="programs.html" class="nav-item">사업 관리</a>
+      <a href="stats.html" class="nav-item">실적 현황</a>
+    </nav>
+    
+    <main class="main-content">
+      <header class="topbar">
+        <div>출석부 시스템</div>
+        <div class="flex items-center gap-2">
+          <span id="topbar-team-name" class="badge badge-neutral"></span>
+          <span id="topbar-user-name"></span>
+          <button onclick="Auth.logout()" class="btn-ghost" style="padding: 4px 8px;">로그아웃</button>
+        </div>
+      </header>
+      
+      <div class="content-body">
+        <h2 class="mb-3">출석체크</h2>
+        
+        <div class="glass-card mb-3">
+          <h3 class="mb-2">Step 1. 사업 선택</h3>
+          <div id="dropdowns-container"></div>
+          
+          <div class="form-group" style="max-width: 200px; margin-top: 16px;">
+            <label class="form-label">날짜 선택</label>
+            <input type="date" id="attendance-date" class="form-input" required>
+          </div>
+          
+          <div id="selected-program-info" class="mt-2 hidden">
+            <span class="badge badge-primary" id="badge-type"></span>
+            <button id="btn-show-qr" class="btn-secondary" style="margin-left: 10px;">QR코드 생성</button>
+          </div>
+        </div>
+
+        <div class="glass-card mb-3 hidden" id="attendance-section">
+          <div class="flex justify-between items-center mb-2">
+            <h3>Step 2. 출석 입력</h3>
+            <div id="attendance-counter"></div>
+          </div>
+          
+          <!-- Only count input -->
+          <div id="count-only-section" class="hidden">
+            <div class="form-group" style="max-width: 200px;">
+              <label class="form-label">실적 건수</label>
+              <input type="number" id="input-count" class="form-input" min="0" value="0">
+            </div>
+          </div>
+          
+          <!-- Members list -->
+          <div id="members-section" class="hidden">
+            <div class="flex justify-between items-center mb-2">
+              <input type="text" id="search-member" class="form-input" placeholder="이름 검색" style="max-width: 250px;">
+              <div>
+                <button class="btn-ghost" id="btn-check-all">전체선택</button>
+                <button class="btn-ghost" id="btn-uncheck-all">전체해제</button>
+              </div>
+            </div>
+            
+            <div class="table-container">
+              <table class="table-glass" id="members-table">
+                <thead>
+                  <tr>
+                    <th width="150">이름</th>
+                    <th width="100">출석</th>
+                    <th>비고</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <!-- Members injected here -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="mt-3 flex justify-between items-center">
+            <button id="btn-save" class="btn-primary">저장하기</button>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- QR Modal -->
+  <div class="modal-overlay" id="qr-modal">
+    <div class="glass-card modal-glass text-center">
+      <div class="modal-header">
+        <h3>QR 출석체크</h3>
+        <button class="btn-ghost" onclick="document.getElementById('qr-modal').classList.remove('active')">X</button>
+      </div>
+      <p class="mb-2 text-sub">참여자에게 아래 QR코드를 보여주세요. (5분간 유효)</p>
+      <div id="qrcode" style="display: flex; justify-content: center; margin: 20px 0;"></div>
+      <a id="qr-link" href="#" target="_blank" class="btn-ghost" style="font-size: 14px;">새 창에서 열기</a>
+    </div>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/programs.js"></script>
+  <script src="js/attendance.js"></script>
+</body>
+</html>

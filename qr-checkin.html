@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QR 출석체크 - 강동어울림복지관</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    body {
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .checkin-card {
+      width: 100%;
+      max-width: 500px;
+      text-align: center;
+    }
+    .status-msg {
+      font-size: 18px;
+      margin: 20px 0;
+      font-weight: bold;
+    }
+    .search-results {
+      max-height: 200px;
+      overflow-y: auto;
+      text-align: left;
+      border: 1px solid rgba(0,0,0,0.1);
+      border-radius: 8px;
+      margin-top: 8px;
+      display: none;
+    }
+    .search-item {
+      padding: 12px;
+      border-bottom: 1px solid rgba(0,0,0,0.05);
+      cursor: pointer;
+    }
+    .search-item:hover {
+      background: var(--color-accent);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="glass-card checkin-card" id="main-card">
+    <h2 style="color: var(--color-primary-dark); margin-bottom: 8px;">강동어울림복지관</h2>
+    <h3 id="program-info" style="color: var(--color-text-sub); margin-bottom: 24px;">출석체크</h3>
+    
+    <div id="loading-state">
+      <div class="spinner" style="margin: 0 auto;"></div>
+      <p class="mt-2 text-sub">정보를 확인중입니다...</p>
+    </div>
+    
+    <div id="search-state" class="hidden">
+      <p class="mb-2">본인의 이름을 검색하여 선택해주세요.</p>
+      <input type="text" id="name-input" class="form-input text-center" placeholder="이름을 입력하세요" style="font-size: 18px;">
+      
+      <div id="search-results" class="search-results"></div>
+      
+      <button id="btn-submit" class="btn-primary mt-3" style="width: 100%; font-size: 18px;" disabled>출석 완료하기</button>
+    </div>
+
+    <div id="success-state" class="hidden">
+      <div style="font-size: 64px; color: var(--color-success); margin-bottom: 16px;">✓</div>
+      <h2 style="color: var(--color-success);">출석이 완료되었습니다!</h2>
+      <p class="mt-2 text-sub">이 창을 닫아주세요.</p>
+    </div>
+
+    <div id="error-state" class="hidden">
+      <div style="font-size: 48px; color: var(--color-error); margin-bottom: 16px;">!</div>
+      <h3 id="error-msg" style="color: var(--color-error);">오류가 발생했습니다.</h3>
+    </div>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/qr-checkin.js"></script>
+</body>
+</html>
