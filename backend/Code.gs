@@ -454,8 +454,8 @@ function recalcStatsDirectly() {
 
 function getStats(teamName, year, month) {
   const now = new Date();
-  const targetYear = year || now.getFullYear();
-  const targetMonth = month || (now.getMonth() + 1);
+  const targetYear = parseInt(year) || now.getFullYear();
+  const targetMonth = parseInt(month) || (now.getMonth() + 1);
 
   const progs = getSheetDataAsJSON('사업_마스터').filter(p => p.팀명 === teamName);
   const attData = getSheetDataAsJSON('출석_원장');
@@ -526,14 +526,18 @@ function getStats(teamName, year, month) {
     accum: totalAccum,
     count: totalCount,
     rate: rate,
+    totalRealCount: realCount,
+    totalItemCount: totalCount,
+    totalAccumCount: totalAccum,
+    avgAchieveRate: rate,
     programs: programStats
   };
 }
 
 function getAllStats(year, month) {
   const now = new Date();
-  const targetYear = year || now.getFullYear();
-  const targetMonth = month || (now.getMonth() + 1);
+  const targetYear = parseInt(year) || now.getFullYear();
+  const targetMonth = parseInt(month) || (now.getMonth() + 1);
 
   const teams = ['지역연계팀', '맞춤지원팀', '건강문화팀', '성장지원팀', '전략기획팀', '미래경영팀'];
   const allProgs = getSheetDataAsJSON('사업_마스터');
