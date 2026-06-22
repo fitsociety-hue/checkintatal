@@ -429,7 +429,7 @@ function selfCheckIn(token, programId, date, name) {
   const attId = 'ATT_' + new Date().getTime();
   sheet.appendRow([
     attId, date, programId, prog.사업명, prog.팀명, name, 
-    'O', 0, 'QR', name, new Date()
+    'O', 1, 'QR', name, new Date()
   ]);
   
   return true;
@@ -462,6 +462,8 @@ function getStats(teamName, year, month) {
 
   // 해당 팀의 사업ID 목록
   const teamProgIds = progs.map(p => p.사업ID);
+  const progMap = {};
+  progs.forEach(p => { progMap[p.사업ID] = p; });
 
   // 해당 월의 출석 데이터만 필터
   const monthAtt = attData.filter(a => {
@@ -476,50 +478,84 @@ function getStats(teamName, year, month) {
   let totalAccum = 0;
 
   monthAtt.forEach(a => {
-    if (a.출석여부 === 'O' && a.이름 !== '건수입력용_무명') {
-      uniqueNames.add(a.이름);
+    const p = progMap[a.사업ID];
+    if (!p) return;
+    
+    const isMemberType = (p.실적유형 !== '건수' && p.실적유형 !== '건수만');
+    if (isMemberType) {
+      if (a.출석여부 === 'O' && a.이름 !== '건수입력용_무명') {
+        uniqueNames.add(a.이름);
+      }
+      let recordCount = Number(a.건수) || 0;
+      if (a.출석여부 === 'O' && recordCount === 0) {
+        recordCount = 1; // 하위 호환성: 건수가 0인데 출석이 O면 1로 처리
+      }
+      totalCount += recordCount;
+      if (a.출석여부 === 'O') totalAccum++;
+    } else {
+      // 건수 전용 사업
+      totalCount += Number(a.건수) || 0;
     }
-    totalCount += Number(a.건수) || 0;
-    if (a.출석여부 === 'O') totalAccum++;
   });
 
   const realCount = uniqueNames.size;
 
-  // 목표 합산
-  let goalReal = 0, goalAccum = 0, goalCount = 0;
-  progs.forEach(p => {
-    goalReal += Number(p.목표_실인원) || 0;
-    goalAccum += Number(p.목표_연인원) || 0;
-    goalCount += Number(p.목표_건수) || 0;
-  });
+  // 사업별 상세 및 달성률 계산
+  let totalProgRateSum = 0;
+  let activeProgCount = 0;
 
-  // 달성률 (목표 연인원 기준, 목표가 0이면 0%)
-  const rate = goalAccum > 0 ? Math.round((totalAccum / goalAccum) * 100) : 0;
-
-  // 사업별 상세
   const programStats = progs.map(p => {
     const progAtt = monthAtt.filter(a => a.사업ID === p.사업ID);
     const pNames = new Set();
     let pCount = 0, pAccum = 0;
+    
+    const isMemberType = (p.실적유형 !== '건수' && p.실적유형 !== '건수만');
+    
     progAtt.forEach(a => {
-      if (a.출석여부 === 'O' && a.이름 !== '건수입력용_무명') pNames.add(a.이름);
-      pCount += Number(a.건수) || 0;
-      if (a.출석여부 === 'O') pAccum++;
+      if (isMemberType) {
+        if (a.출석여부 === 'O' && a.이름 !== '건수입력용_무명') pNames.add(a.이름);
+        let recordCount = Number(a.건수) || 0;
+        if (a.출석여부 === 'O' && recordCount === 0) {
+          recordCount = 1;
+        }
+        pCount += recordCount;
+        if (a.출석여부 === 'O') pAccum++;
+      } else {
+        pCount += Number(a.건수) || 0;
+      }
     });
+
     const gReal = Number(p.목표_실인원) || 0;
     const gCount = Number(p.목표_건수) || 0;
     const gAccum = Number(p.목표_연인원) || 0;
+
+    const rateReal = gReal > 0 ? Math.round((pNames.size / gReal) * 100) : 0;
+    const rateCount = gCount > 0 ? Math.round((pCount / gCount) * 100) : 0;
+    const rateAccum = gAccum > 0 ? Math.round((pAccum / gAccum) * 100) : 0;
+
+    let mainRate = 0;
+    if (isMemberType) {
+      mainRate = rateAccum;
+    } else {
+      mainRate = rateCount;
+    }
+    
+    totalProgRateSum += mainRate;
+    activeProgCount++;
+
     return {
       팀명: p.팀명,
       사업명: p.사업명,
-      실인원: pNames.size,
+      실인원: isMemberType ? pNames.size : 0,
       건수: pCount,
-      연인원: pAccum,
-      '목표대비_실인원': gReal > 0 ? Math.round((pNames.size / gReal) * 100) : 0,
-      '목표대비_건수': gCount > 0 ? Math.round((pCount / gCount) * 100) : 0,
-      '목표대비_연인원': gAccum > 0 ? Math.round((pAccum / gAccum) * 100) : 0
+      연인원: isMemberType ? pAccum : 0,
+      '목표대비_실인원': rateReal,
+      '목표대비_건수': rateCount,
+      '목표대비_연인원': rateAccum
     };
   });
+
+  const rate = activeProgCount > 0 ? Math.round(totalProgRateSum / activeProgCount) : 0;
 
   return {
     real: realCount,
@@ -552,7 +588,12 @@ function getAllStats(year, month) {
   let grandReal = new Set();
   let grandAccum = 0;
   let grandCount = 0;
-  let grandGoalAccum = 0;
+
+  const progMap = {};
+  allProgs.forEach(p => { progMap[p.사업ID] = p; });
+
+  let totalAllProgRateSum = 0;
+  let activeAllProgCount = 0;
 
   const teamStats = teams.map(team => {
     const teamProgs = allProgs.filter(p => p.팀명 === team);
@@ -561,45 +602,108 @@ function getAllStats(year, month) {
 
     const names = new Set();
     let tAccum = 0, tCount = 0;
+    
     teamAtt.forEach(a => {
-      if (a.출석여부 === 'O' && a.이름 !== '건수입력용_무명') {
-        names.add(a.이름);
-        grandReal.add(a.이름);
+      const p = progMap[a.사업ID];
+      if (!p) return;
+      
+      const isMemberType = (p.실적유형 !== '건수' && p.실적유형 !== '건수만');
+      if (isMemberType) {
+        if (a.출석여부 === 'O' && a.이름 !== '건수입력용_무명') {
+          names.add(a.이름);
+          grandReal.add(a.이름);
+        }
+        let recordCount = Number(a.건수) || 0;
+        if (a.출석여부 === 'O' && recordCount === 0) {
+          recordCount = 1;
+        }
+        tCount += recordCount;
+        if (a.출석여부 === 'O') {
+          tAccum++;
+          grandAccum++;
+        }
+      } else {
+        tCount += Number(a.건수) || 0;
       }
-      tCount += Number(a.건수) || 0;
-      if (a.출석여부 === 'O') { tAccum++; grandAccum++; }
     });
     grandCount += tCount;
 
-    let gAccum = 0;
-    teamProgs.forEach(p => { gAccum += Number(p.목표_연인원) || 0; });
-    grandGoalAccum += gAccum;
+    // 각 팀의 사업들 달성률 합산 및 평균
+    let teamProgRateSum = 0;
+    let teamProgCount = 0;
 
-    const rate = gAccum > 0 ? Math.round((tAccum / gAccum) * 100) : 0;
-    return { team: team, rate: rate };
+    teamProgs.forEach(p => {
+      const progAtt = teamAtt.filter(a => a.사업ID === p.사업ID);
+      let pCount = 0, pAccum = 0;
+      
+      const isMemberType = (p.실적유형 !== '건수' && p.실적유형 !== '건수만');
+      
+      progAtt.forEach(a => {
+        if (isMemberType) {
+          let recordCount = Number(a.건수) || 0;
+          if (a.출석여부 === 'O' && recordCount === 0) recordCount = 1;
+          pCount += recordCount;
+          if (a.출석여부 === 'O') pAccum++;
+        } else {
+          pCount += Number(a.건수) || 0;
+        }
+      });
+
+      const gCount = Number(p.목표_건수) || 0;
+      const gAccum = Number(p.목표_연인원) || 0;
+
+      let mainRate = 0;
+      if (isMemberType) {
+        mainRate = gAccum > 0 ? Math.round((pAccum / gAccum) * 100) : 0;
+      } else {
+        mainRate = gCount > 0 ? Math.round((pCount / gCount) * 100) : 0;
+      }
+
+      teamProgRateSum += mainRate;
+      teamProgCount++;
+
+      totalAllProgRateSum += mainRate;
+      activeAllProgCount++;
+    });
+
+    const teamRate = teamProgCount > 0 ? Math.round(teamProgRateSum / teamProgCount) : 0;
+    return { team: team, rate: teamRate };
   });
 
-  const avgRate = grandGoalAccum > 0 ? Math.round((grandAccum / grandGoalAccum) * 100) : 0;
+  const avgRate = activeAllProgCount > 0 ? Math.round(totalAllProgRateSum / activeAllProgCount) : 0;
 
   // 사업별 상세
   const programStats = allProgs.map(p => {
     const progAtt = monthAtt.filter(a => a.사업ID === p.사업ID);
     const pNames = new Set();
     let pCount = 0, pAccum = 0;
+    
+    const isMemberType = (p.실적유형 !== '건수' && p.실적유형 !== '건수만');
+    
     progAtt.forEach(a => {
-      if (a.출석여부 === 'O' && a.이름 !== '건수입력용_무명') pNames.add(a.이름);
-      pCount += Number(a.건수) || 0;
-      if (a.출석여부 === 'O') pAccum++;
+      if (isMemberType) {
+        if (a.출석여부 === 'O' && a.이름 !== '건수입력용_무명') pNames.add(a.이름);
+        let recordCount = Number(a.건수) || 0;
+        if (a.출석여부 === 'O' && recordCount === 0) {
+          recordCount = 1;
+        }
+        pCount += recordCount;
+        if (a.출석여부 === 'O') pAccum++;
+      } else {
+        pCount += Number(a.건수) || 0;
+      }
     });
+
     const gReal = Number(p.목표_실인원) || 0;
     const gCount = Number(p.목표_건수) || 0;
     const gAccum = Number(p.목표_연인원) || 0;
+
     return {
       팀명: p.팀명,
       사업명: p.사업명,
-      실인원: pNames.size,
+      실인원: isMemberType ? pNames.size : 0,
       건수: pCount,
-      연인원: pAccum,
+      연인원: isMemberType ? pAccum : 0,
       '목표대비_실인원': gReal > 0 ? Math.round((pNames.size / gReal) * 100) : 0,
       '목표대비_건수': gCount > 0 ? Math.round((pCount / gCount) * 100) : 0,
       '목표대비_연인원': gAccum > 0 ? Math.round((pAccum / gAccum) * 100) : 0

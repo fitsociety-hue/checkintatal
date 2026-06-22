@@ -144,7 +144,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const attendanceList = currentMembers.map(m => ({
           이름: m.이름,
           출석여부: m.attended ? 'O' : 'X',
-          건수: 0 // Modify if "실인원+건수" needs custom input per user
+          건수: m.attended ? 1 : 0
         }));
         await API.fetchGAS('checkAttendance', { programId: currentProgram.사업ID, date: dateStr, attendanceList });
       }
