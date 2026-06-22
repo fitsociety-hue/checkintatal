@@ -15,6 +15,19 @@ const Auth = {
     }
   },
 
+  register: async function(team, name, password) {
+    try {
+      const result = await API.fetchGAS('register', { team, name, password });
+      if (result.success) {
+        Utils.showToast('회원가입이 완료되었습니다. 로그인해주세요.', 'success');
+        return true;
+      }
+      return false;
+    } catch (e) {
+      return false;
+    }
+  },
+
   logout: function() {
     localStorage.removeItem('jwt_token');
     localStorage.removeItem('user_info');

@@ -42,6 +42,7 @@ function handleRequest(e, method) {
 
     switch (action) {
       case 'login': result = login(payload.team, payload.name, payload.password); break;
+      case 'register': result = registerUser(payload.team, payload.name, payload.password); break;
       
       // 회원 관리
       case 'getMembers': result = getMembers(payload.programId, payload.status); break;
@@ -162,6 +163,25 @@ function verifyToken(token) {
   } catch (e) {
     return null;
   }
+}
+
+function registerUser(team, name, password) {
+  const sheet = getSheet('직원_마스터');
+  const staffData = getSheetDataAsJSON('직원_마스터');
+  
+  // 중복 가입 방지 (소속 팀명 + 이름 동일하면 가입 거부)
+  const isDuplicate = staffData.some(s => s.이름 === name && s.팀명 === team);
+  if (isDuplicate) {
+    throw new Error('이미 동일한 소속과 이름으로 가입된 계정이 있습니다.');
+  }
+
+  // 중복이 아니면 가입 허용
+  const newId = 'STAFF_' + new Date().getTime();
+  sheet.appendRow([
+    newId, name, team, '팀원', password, '활성', ''
+  ]);
+  
+  return true;
 }
 
 // ==============================================================================
