@@ -166,7 +166,7 @@ window.downloadProgramsCSV = function() {
     return;
   }
 
-  const headers = ['팀명', '사업분류', '세부사업분류', '사업명', '실적유형', '상태', '목표_건수', '목표_실인원', '목표_연인원'];
+  const headers = ['팀명', '사업분류', '세부사업분류', '사업명', '실적유형', '상태', '목표_실인원', '목표_건수', '목표_연인원', '담당자'];
   const escapeCSV = (val) => {
     const str = String(val == null ? '' : val);
     if (str.includes(',') || str.includes('"') || str.includes('\n')) {
@@ -184,9 +184,10 @@ window.downloadProgramsCSV = function() {
       p.사업명,
       p.실적유형,
       p.상태 || '활성',
-      p.목표_건수 || 0,
       p.목표_실인원 || 0,
-      p.목표_연인원 || 0
+      p.목표_건수 || 0,
+      p.목표_연인원 || 0,
+      p.담당자 || ''
     ].map(escapeCSV).join(',') + '\n';
   });
 

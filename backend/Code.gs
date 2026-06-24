@@ -115,7 +115,7 @@ function getSheet(sheetName) {
 function getHeadersForSheet(sheetName) {
   switch (sheetName) {
     case '직원_마스터': return ['직원ID', '이름', '팀명', '직위', '비밀번호', '상태', '담당사업IDs'];
-    case '사업_마스터': return ['팀명', '사업분류', '세부사업분류', '사업명', '실적유형', '상태', '목표_건수', '목표_실인원', '목표_연인원', '담당자', '사업ID'];
+    case '사업_마스터': return ['팀명', '사업분류', '세부사업분류', '사업명', '실적유형', '상태', '목표_실인원', '목표_건수', '목표_연인원', '담당자', '사업ID'];
     case '회원_마스터': return ['이름', '시작일', '상태', '장애비장애구분', '구분', '사업명', '메모'];
     case '출석_원장': return ['출석ID', '날짜', '사업ID', '사업명', '팀명', '이름', '출석여부', '건수', '입력방식', '입력자', '입력시각'];
     case '실적_집계': return ['팀명', '사업명', '년도', '월', '실인원', '건수', '연인원', '목표대비_실인원(%)', '목표대비_건수(%)', '목표대비_연인원(%)'];
@@ -295,7 +295,7 @@ function addProgram(data) {
   const programId = 'PROG_' + new Date().getTime();
   sheet.appendRow([
     data.팀명, data.사업분류, data.세부사업분류, data.사업명, data.실적유형,
-    data.상태 || '활성', data.목표_건수 || 0, data.목표_실인원 || 0, data.목표_연인원 || 0,
+    data.상태 || '활성', data.목표_실인원 || 0, data.목표_건수 || 0, data.목표_연인원 || 0,
     data.담당자 || '', programId
   ]);
   invalidateCache();
@@ -309,7 +309,7 @@ function updateProgram(programId, data) {
     if (vals[i][10] === programId) {
       sheet.getRange(i + 1, 1, 1, 10).setValues([[
         data.팀명, data.사업분류, data.세부사업분류, data.사업명, data.실적유형,
-        data.상태, data.목표_건수, data.목표_실인원, data.목표_연인원, data.담당자
+        data.상태, data.목표_실인원, data.목표_건수, data.목표_연인원, data.담당자
       ]]);
       invalidateCache();
       return true;
@@ -323,7 +323,7 @@ function importProgramsCSV(csvData) {
   csvData.forEach(row => {
     sheet.appendRow([
       row.팀명, row.사업분류, row.세부사업분류, row.사업명, row.실적유형,
-      row.상태 || '활성', row.목표_건수 || 0, row.목표_실인원 || 0, row.목표_연인원 || 0,
+      row.상태 || '활성', row.목표_실인원 || 0, row.목표_건수 || 0, row.목표_연인원 || 0,
       row.담당자 || '', 'PROG_' + Math.floor(Math.random()*10000000)
     ]);
   });
