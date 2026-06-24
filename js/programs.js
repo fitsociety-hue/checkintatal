@@ -77,10 +77,15 @@ const ProgramsLogic = {
       
       const t = e.target.value;
       if (t && categories[t]) {
-        Object.keys(categories[t]).forEach(c1 => {
+        const cats1 = Object.keys(categories[t]);
+        cats1.forEach(c1 => {
           selCat1.innerHTML += `<option value="${c1}">${c1}</option>`;
         });
         selCat1.disabled = false;
+        if (cats1.length === 1) {
+          selCat1.value = cats1[0];
+          setTimeout(() => selCat1.dispatchEvent(new Event('change')), 0);
+        }
       }
       onChangeCallback(null);
     });
@@ -93,10 +98,15 @@ const ProgramsLogic = {
       const t = selTeam.value;
       const c1 = e.target.value;
       if (c1 && categories[t][c1]) {
-        Object.keys(categories[t][c1]).forEach(c2 => {
+        const cats2 = Object.keys(categories[t][c1]);
+        cats2.forEach(c2 => {
           selCat2.innerHTML += `<option value="${c2}">${c2}</option>`;
         });
         selCat2.disabled = false;
+        if (cats2.length === 1) {
+          selCat2.value = cats2[0];
+          setTimeout(() => selCat2.dispatchEvent(new Event('change')), 0);
+        }
       }
       onChangeCallback(null);
     });
@@ -115,6 +125,10 @@ const ProgramsLogic = {
           selProg.innerHTML += `<option value="${p.사업ID}">${p.사업명}</option>`;
         });
         selProg.disabled = false;
+        if (currentPrograms.length === 1) {
+          selProg.value = currentPrograms[0].사업ID;
+          setTimeout(() => selProg.dispatchEvent(new Event('change')), 0);
+        }
       }
       onChangeCallback(null);
     });
@@ -128,5 +142,12 @@ const ProgramsLogic = {
         onChangeCallback(null);
       }
     });
+    
+    // Initial auto-select
+    const teams = Object.keys(categories);
+    if (teams.length === 1) {
+      selTeam.value = teams[0];
+      setTimeout(() => selTeam.dispatchEvent(new Event('change')), 0);
+    }
   }
 };
