@@ -65,9 +65,24 @@ document.addEventListener('DOMContentLoaded', async () => {
         const attRes = await API.fetchGAS('getAttendanceSheet', { programId: program.사업ID, date: dateStr });
         const existingAtt = attRes.data || [];
         
+        // Add members who are in existingAtt but not in currentMembers
+        existingAtt.forEach(att => {
+          if (!currentMembers.find(m => m.이름 === att.이름) && att.이름 !== '건수입력용_무명') {
+            currentMembers.push({
+              이름: att.이름,
+              장애비장애구분: '비장애',
+              attended: att.출석여부 === 'O'
+            });
+          }
+        });
+
         currentMembers.forEach(m => {
           const att = existingAtt.find(a => a.이름 === m.이름);
-          m.attended = att ? (att.출석여부 === 'O') : false;
+          if (att) {
+            m.attended = (att.출석여부 === 'O');
+          } else {
+            if (m.attended === undefined) m.attended = false;
+          }
         });
 
         renderMembersTable();
@@ -91,29 +106,49 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('attendance-counter').textContent = `출석 ${attCount}명 / 전체 ${currentMembers.length}명`;
 
     if (filtered.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="3" class="text-center">회원이 없습니다.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="4" class="text-center">회원이 없습니다.</td></tr>';
       return;
     }
 
-    filtered.forEach((m, idx) => {
+    filtered.forEach((m) => {
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td>${m.이름} ${m.장애비장애구분 === '장애' ? '<span class="badge badge-warning" style="font-size:10px">장애</span>' : ''}</td>
         <td>
-          <button class="btn-check ${m.attended ? 'btn-primary' : 'btn-secondary'}" data-idx="${idx}" style="padding: 6px 12px; border-radius: 20px;">
-            ${m.attended ? '출석 O' : '출석 X'}
+          <button class="btn-check ${m.attended ? 'btn-primary' : 'btn-secondary'}" data-name="${m.이름}" style="padding: 6px 12px; border-radius: 20px;">
+            ${m.attended ? '출석 O' : '미출석'}
           </button>
         </td>
-        <td><input type="text" class="form-input" style="padding: 6px;" placeholder="비고 입력"></td>
+        <td><input type="text" class="form-input remark-input" data-name="${m.이름}" style="padding: 6px;" placeholder="비고 입력" value="${m.remark || ''}"></td>
+        <td>
+          <button class="btn-delete btn-error" data-name="${m.이름}" style="padding: 6px 12px; border-radius: 20px; border: none; background-color: #ff4d4f; color: white; cursor: pointer;">삭제</button>
+        </td>
       `;
       tbody.appendChild(tr);
     });
 
     document.querySelectorAll('.btn-check').forEach(btn => {
       btn.addEventListener('click', (e) => {
-        const idx = e.target.getAttribute('data-idx');
-        currentMembers[idx].attended = !currentMembers[idx].attended;
+        const memberName = e.target.getAttribute('data-name');
+        const member = currentMembers.find(m => m.이름 === memberName);
+        if (member) member.attended = !member.attended;
         renderMembersTable(filter);
+      });
+    });
+
+    document.querySelectorAll('.btn-delete').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const memberName = e.target.getAttribute('data-name');
+        currentMembers = currentMembers.filter(m => m.이름 !== memberName);
+        renderMembersTable(filter);
+      });
+    });
+
+    document.querySelectorAll('.remark-input').forEach(input => {
+      input.addEventListener('change', (e) => {
+        const memberName = e.target.getAttribute('data-name');
+        const member = currentMembers.find(m => m.이름 === memberName);
+        if (member) member.remark = e.target.value;
       });
     });
   }
