@@ -205,3 +205,13 @@ window.downloadMembersCSV = function() {
   URL.revokeObjectURL(url);
   Utils.showToast('CSV 파일이 다운로드되었습니다.', 'success');
 }
+
+window.syncData = async function() {
+  try {
+    await API.fetchGAS('clearCache');
+    Utils.showToast('데이터가 성공적으로 동기화되었습니다.', 'success');
+    await loadMembers();
+  } catch (e) {
+    Utils.showToast('동기화 중 오류가 발생했습니다.', 'error');
+  }
+}

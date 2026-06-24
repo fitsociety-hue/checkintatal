@@ -73,6 +73,12 @@ function handleRequest(e, method) {
       case 'getAllStats': result = getAllStats(payload.year, payload.month); break;
       case 'getPersonalStats': result = getPersonalStats(payload.staffId, payload.year, payload.month); break;
       
+      // 캐시 동기화
+      case 'clearCache': 
+        invalidateCache(); 
+        result = true; 
+        break;
+
       default:
         throw new Error('알 수 없는 Action입니다: ' + action);
     }
