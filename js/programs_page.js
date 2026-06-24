@@ -91,6 +91,7 @@ function renderGrid() {
       <div class="mb-2">
         <span class="badge badge-primary">${p.실적유형}</span>
         <span class="text-sub" style="font-size: 12px; margin-left: 8px;">${p.팀명}</span>
+        ${p.담당자 ? `<span class="text-sub" style="font-size: 12px; margin-left: 8px;">담당: ${p.담당자}</span>` : ''}
       </div>
       
       <div class="mt-3 text-right">
@@ -126,6 +127,7 @@ window.editProgram = function(id) {
   document.getElementById('prog-goal-accum').value = p.목표_연인원 || 0;
   document.getElementById('prog-goal-count').value = p.목표_건수 || 0;
   document.getElementById('prog-status').value = p.상태 || '활성';
+  document.getElementById('prog-manager').value = p.담당자 || '';
   
   document.getElementById('program-modal').classList.add('active');
 }
@@ -141,7 +143,8 @@ async function saveProgram() {
     목표_실인원: parseInt(document.getElementById('prog-goal-real').value, 10),
     목표_연인원: parseInt(document.getElementById('prog-goal-accum').value, 10),
     목표_건수: parseInt(document.getElementById('prog-goal-count').value, 10),
-    상태: document.getElementById('prog-status').value
+    상태: document.getElementById('prog-status').value,
+    담당자: document.getElementById('prog-manager').value
   };
 
   try {

@@ -10,7 +10,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   const user = Auth.getUser();
   // Fetch programs for dropdown
   let teamName = user.role === '관리자' ? '' : user.team; 
-  const programs = await ProgramsLogic.loadTeamPrograms(teamName);
+  let programs = await ProgramsLogic.loadTeamPrograms(teamName);
+  
+  // 담당자 기반 필터링 (관리자가 아닐 경우)
+  if (user.role !== '관리자') {
+    programs = programs.filter(p => p.담당자 && p.담당자.includes(user.name));
+  }
   
   let currentProgram = null;
   let currentMembers = [];
