@@ -6,9 +6,9 @@ const ProgramsLogic = {
     '성장지원팀', '전략기획팀', '미래경영팀'
   ],
   
-  loadTeamPrograms: async function(teamName = '') {
+  loadTeamPrograms: async function(teamName = '', forceRefresh = false) {
     try {
-      const res = await API.fetchGAS('getPrograms', { teamName });
+      const res = await API.fetchGAS('getPrograms', { teamName, forceRefresh });
       return res.data; // Array of programs
     } catch (e) {
       return [];

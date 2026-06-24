@@ -47,14 +47,19 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 });
 
-async function loadMembers() {
+async function loadMembers(forceRefresh = false) {
   try {
-    const res = await API.fetchGAS('getMembers', { status: 'all' });
+    const res = await API.fetchGAS('getMembers', { status: 'all', forceRefresh });
     allMembers = res.data || [];
     applyFilters();
   } catch (e) {
     document.querySelector('#members-table tbody').innerHTML = '<tr><td colspan="7" class="text-center">데이터를 불러오지 못했습니다.</td></tr>';
   }
+}
+
+window.forceRefreshMembers = async function() {
+  await loadMembers(true);
+  Utils.showToast('최신 데이터로 동기화되었습니다.', 'success');
 }
 
 function applyFilters() {
@@ -204,14 +209,4 @@ window.downloadMembersCSV = function() {
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
   Utils.showToast('CSV 파일이 다운로드되었습니다.', 'success');
-}
-
-window.syncData = async function() {
-  try {
-    await API.fetchGAS('clearCache');
-    Utils.showToast('데이터가 성공적으로 동기화되었습니다.', 'success');
-    await loadMembers();
-  } catch (e) {
-    Utils.showToast('동기화 중 오류가 발생했습니다.', 'error');
-  }
 }

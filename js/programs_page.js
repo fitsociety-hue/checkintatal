@@ -36,15 +36,36 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 });
 
-async function loadPrograms() {
+async function loadPagePrograms(forceRefresh = false) {
   try {
-    const user = Auth.getUser();
-    const team = user.role === '관리자' ? '' : user.team;
-    allPrograms = await ProgramsLogic.loadTeamPrograms(team);
+    const res = await API.fetchGAS('getPrograms', { teamName: '전체', status: 'all', forceRefresh });
+    allPrograms = res.data || [];
+    renderTabs();
     renderGrid();
   } catch(e) {
     document.getElementById('programs-grid').innerHTML = '<p>데이터를 불러오지 못했습니다.</p>';
   }
+}
+
+window.forceRefreshPrograms = async function() {
+  await loadPagePrograms(true);
+  Utils.showToast('최신 데이터로 동기화되었습니다.', 'success');
+}
+
+async function loadPrograms(forceRefresh = false) {
+  try {
+    const user = Auth.getUser();
+    const team = user.role === '관리자' ? '' : user.team;
+    allPrograms = await ProgramsLogic.loadTeamPrograms(team, forceRefresh);
+    renderGrid();
+  } catch(e) {
+    document.getElementById('programs-grid').innerHTML = '<p>데이터를 불러오지 못했습니다.</p>';
+  }
+}
+
+window.forceRefreshPrograms = async function() {
+  await loadPrograms(true);
+  Utils.showToast('최신 데이터로 동기화되었습니다.', 'success');
 }
 
 function renderTabs() {

@@ -35,11 +35,16 @@ function handleRequest(e, method) {
 
     // 인증 검증 로직 (login, register 등은 제외)
     let user = null;
-    const bypassActions = ['login', 'register', 'verifyQRToken', 'selfCheckIn'];
+    const bypassActions = ['login', 'register', 'verifyQRToken', 'selfCheckIn', 'setupAutoSyncTrigger'];
     if (!bypassActions.includes(action)) {
       if (!payload.token) throw new Error('인증 토큰이 필요합니다.');
       user = verifyToken(payload.token);
       if (!user) throw new Error('유효하지 않거나 만료된 토큰입니다.');
+    }
+
+    // 캐시 강제 무효화 요청 처리 (근본적인 동기화 문제 해결)
+    if (payload.forceRefresh) {
+      invalidateCache();
     }
 
     switch (action) {
@@ -73,12 +78,9 @@ function handleRequest(e, method) {
       case 'getAllStats': result = getAllStats(payload.year, payload.month); break;
       case 'getPersonalStats': result = getPersonalStats(payload.staffId, payload.year, payload.month); break;
       
-      // 캐시 동기화
-      case 'clearCache': 
-        invalidateCache(); 
-        result = true; 
-        break;
-
+      // 시스템 관리
+      case 'setupAutoSyncTrigger': result = setupAutoSyncTrigger(); break;
+      
       default:
         throw new Error('알 수 없는 Action입니다: ' + action);
     }
@@ -1034,4 +1036,34 @@ function getCacheChunked(cacheKey) {
   } catch (e) {
     return null;
   }
+}
+
+// ==============================================================================
+// 트리거 설정 (근본적인 캐시 동기화 오류 해결)
+// ==============================================================================
+
+// 이 함수를 Apps Script 에디터에서 한 번 실행하면 구글 시트에서 직접 행을 삭제/추가할 때 자동으로 캐시가 무효화됩니다.
+function setupAutoSyncTrigger() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  
+  // 기존 트리거 확인 및 삭제 (중복 생성 방지)
+  const triggers = ScriptApp.getProjectTriggers();
+  for (let i = 0; i < triggers.length; i++) {
+    if (triggers[i].getHandlerFunction() === 'onSpreadsheetChange') {
+      ScriptApp.deleteTrigger(triggers[i]);
+    }
+  }
+  
+  // 새 onChange 트리거 생성
+  ScriptApp.newTrigger('onSpreadsheetChange')
+    .forSpreadsheet(ss)
+    .onChange()
+    .create();
+    
+  return true;
+}
+
+function onSpreadsheetChange(e) {
+  // 사용자가 시트에서 직접 행 삭제, 추가, 수정 등 구조적 변경을 가했을 때 캐시 무효화
+  invalidateCache();
 }

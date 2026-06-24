@@ -31,7 +31,7 @@
         <div class="flex justify-between items-center mb-3">
           <h2>회원 관리</h2>
           <div>
-            <button class="btn-secondary" onclick="syncData()">시트 동기화</button>
+            <button class="btn-secondary" onclick="forceRefreshMembers()">새로고침</button>
             <button class="btn-secondary" onclick="downloadMembersCSV()">CSV 다운로드</button>
             <button class="btn-secondary" onclick="document.getElementById('csv-upload-input').click()">CSV 업로드</button>
             <input type="file" id="csv-upload-input" accept=".csv" class="hidden">
