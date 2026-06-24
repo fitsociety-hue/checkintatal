@@ -55,11 +55,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const res = await API.fetchGAS('getMembers', { programId: program.사업ID, programName: program.사업명 });
         currentMembers = res.data || [];
         
-        // 사업명 매칭 회원이 없으면 전체 활성 회원 로드
-        if (currentMembers.length === 0) {
-          const allRes = await API.fetchGAS('getMembers', { status: 'all' });
-          currentMembers = (allRes.data || []).filter(m => m.상태 === '활성');
-        }
+        // Remove the fallback so it strictly shows matched members.
         
         // Also fetch today's attendance to pre-fill
         const attRes = await API.fetchGAS('getAttendanceSheet', { programId: program.사업ID, date: dateStr });

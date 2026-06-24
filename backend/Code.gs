@@ -368,11 +368,12 @@ function getMembers(programId, status, programName) {
   if (status && status !== 'all') {
     members = members.filter(m => m.상태 === status);
   }
-  // 사업명으로 필터링 (회원의 사업명 필드에 해당 사업명이 포함되어 있는지 확인)
+  // 사업명으로 필터링 (회원의 사업명 필드에 해당 사업명이 포함되어 있는지 확인, 공백 무시)
   if (programName) {
+    const normSearch = String(programName).replace(/\s+/g, '');
     members = members.filter(m => {
-      const memberPrograms = String(m.사업명 || '').split(',').map(s => s.trim());
-      return memberPrograms.includes(programName);
+      const memberPrograms = String(m.사업명 || '').split(',').map(s => s.replace(/\s+/g, ''));
+      return memberPrograms.includes(normSearch);
     });
   }
   return members;
