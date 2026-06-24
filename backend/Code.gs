@@ -246,9 +246,9 @@ function login(team, name, password) {
   
   if (!user) {
     // 관리자의 경우 하드코딩된 마스터 계정 허용 (초기 세팅 및 고정 아이디)
-    if (team === '관리자' && name === 'admin') {
+    if (String(team || '').trim() === '관리자' && String(name || '').trim() === 'admin') {
       const adminPw = PropertiesService.getScriptProperties().getProperty('ADMIN_PASSWORD') || '1107';
-      if (password === adminPw) {
+      if (String(password || '').trim() === String(adminPw).trim()) {
         const mockUser = { staffId: 'ADMIN', name: '최고관리자', team: '관리자', role: '관리자' };
         return { token: createToken(mockUser), user: mockUser };
       }
