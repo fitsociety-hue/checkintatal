@@ -32,10 +32,16 @@ async function loadStats() {
   const user = Auth.getUser();
 
   try {
-    const action = user.role === '관리자' ? 'getAllStats' : 'getStats';
+    let action = 'getStats';
     const params = { year, month };
-    if (user.role !== '관리자') {
+    
+    if (user.role === '관리자') {
+      action = 'getAllStats';
+    } else if (user.role === '팀장') {
       params.teamName = user.team;
+    } else {
+      action = 'getPersonalStats';
+      params.staffId = user.staffId;
     }
     
     const res = await API.fetchGAS(action, params);

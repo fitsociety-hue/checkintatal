@@ -9,7 +9,13 @@ const ProgramsLogic = {
   loadTeamPrograms: async function(teamName = '', forceRefresh = false) {
     try {
       const res = await API.fetchGAS('getPrograms', { teamName, forceRefresh });
-      return res.data; // Array of programs
+      let progs = res.data || [];
+      const user = Auth.currentUser;
+      if (user && user.role !== '관리자' && user.role !== '팀장') {
+        const staffName = user.name;
+        progs = progs.filter(p => String(p.담당자 || '').includes(staffName));
+      }
+      return progs;
     } catch (e) {
       return [];
     }

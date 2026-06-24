@@ -135,10 +135,14 @@ async function renderStaffDashboard(container, user) {
       progsDiv.innerHTML = '<p>담당 사업이 없습니다.</p>';
     } else {
       progsDiv.innerHTML = programs.map(p => `
-        <div class="glass-card flex justify-between items-center" style="padding: 16px; cursor: pointer;" onclick="window.location.href='attendance.html?programId=${p.사업ID}'">
-          <div>
-            <div class="badge badge-primary mb-1">${p.실적유형}</div>
+        <div class="glass-card flex justify-between items-center" style="padding: 16px; cursor: pointer; margin-bottom: 8px;" onclick="window.location.href='attendance.html?programName=${encodeURIComponent(p.사업명)}'">
+          <div style="flex: 1;">
+            <div class="badge badge-primary mb-1">${p.subCategory || p.parentName || p.실적유형}</div>
             <h4 style="margin:0">${p.사업명}</h4>
+          </div>
+          <div style="margin-right: 16px; text-align: right;">
+            <span class="text-muted" style="font-size: 0.9em;">달성율</span>
+            <div style="font-size: 1.2em; font-weight: bold; color: var(--primary);">${p.mainRate || 0}%</div>
           </div>
           <button class="btn-secondary">출석체크</button>
         </div>

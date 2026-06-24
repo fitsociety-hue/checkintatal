@@ -50,7 +50,20 @@ document.addEventListener('DOMContentLoaded', async () => {
 async function loadMembers(forceRefresh = false) {
   try {
     const res = await API.fetchGAS('getMembers', { status: 'all', forceRefresh });
-    allMembers = res.data || [];
+    let fetchedMembers = res.data || [];
+    
+    const user = Auth.currentUser;
+    if (user && user.role !== '관리자' && user.role !== '팀장') {
+      const progsRes = await API.fetchGAS('getPersonalStats', { staffId: user.staffId });
+      const assignedProgs = progsRes.data.programs || [];
+      const assignedProgNames = assignedProgs.map(p => p.사업명.replace(/\s+/g, ''));
+      fetchedMembers = fetchedMembers.filter(m => {
+        const memberProgs = String(m.사업명 || '').split(',').map(s => s.replace(/\s+/g, ''));
+        return memberProgs.some(mp => assignedProgNames.includes(mp));
+      });
+    }
+
+    allMembers = fetchedMembers;
     applyFilters();
   } catch (e) {
     document.querySelector('#members-table tbody').innerHTML = '<tr><td colspan="7" class="text-center">데이터를 불러오지 못했습니다.</td></tr>';
