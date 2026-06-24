@@ -1,5 +1,5 @@
 const CONFIG = {
-  GAS_URL: 'https://script.google.com/macros/s/AKfycbzyP2dUPk29IypuSOEMoDGXZRy_JhZz3K9rJJ2pgT_lrbrz-7fYW6X3_f3jsil4Eh0U/exec',
+  GAS_URL: 'https://script.google.com/macros/s/AKfycbzeS8GC6EXgDKhWOEQWgl6zW-J524cPhpYeagRpC5rzYxTF3ksMUHzT-M4aIEE4MsE/exec',
   APP_NAME: '강동어울림복지관 출석부',
   VERSION: '1.0.0'
 };
