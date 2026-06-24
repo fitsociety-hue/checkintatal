@@ -20,13 +20,13 @@ document.addEventListener('DOMContentLoaded', () => {
   const currentMonth = new Date().getMonth() + 1;
   document.getElementById('filter-month').value = currentMonth;
 
-  document.getElementById('btn-load-stats').addEventListener('click', loadStats);
+  document.getElementById('btn-load-stats').addEventListener('click', () => loadStats(true));
   document.getElementById('btn-export').addEventListener('click', exportToExcel);
   
   loadStats(); // initial load
 });
 
-async function loadStats() {
+async function loadStats(forceRefresh = false) {
   const year = document.getElementById('filter-year').value;
   const month = document.getElementById('filter-month').value;
   const user = Auth.getUser();
@@ -34,6 +34,7 @@ async function loadStats() {
   try {
     let action = 'getStats';
     const params = { year, month };
+    if (forceRefresh) params.forceRefresh = true;
     
     if (user.role === '관리자') {
       action = 'getAllStats';

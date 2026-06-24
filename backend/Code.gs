@@ -717,11 +717,11 @@ function getStats(teamName, year, month) {
   const isAllMonths = (targetMonthStr === 'all');
   const targetMonth = isAllMonths ? 12 : parseInt(targetMonthStr);
 
-  const progs = getSheetDataAsJSON('사업_마스터').filter(p => p.팀명 === teamName);
-  const attData = getSheetDataAsJSON('출석_원장');
+  const progs = getSheetDataAsJSON('사업_마스터', true).filter(p => p.팀명 === teamName);
+  const attData = getSheetDataAsJSON('출석_원장', true);
   
   const memberMap = {};
-  getSheetDataAsJSON('회원_마스터').forEach(m => {
+  getSheetDataAsJSON('회원_마스터', true).forEach(m => {
     memberMap[m.이름] = m.구분 || '개별';
   });
 
@@ -737,12 +737,12 @@ function getAllStats(year, month) {
   const targetMonth = isAllMonths ? 12 : parseInt(targetMonthStr);
 
   const teams = ['지역연계팀', '맞춤지원팀', '건강문화팀', '성장지원팀', '전략기획팀', '미래경영팀'];
-  const allProgs = getSheetDataAsJSON('사업_마스터');
-  const attData = getSheetDataAsJSON('출석_원장');
+  const allProgs = getSheetDataAsJSON('사업_마스터', true);
+  const attData = getSheetDataAsJSON('출석_원장', true);
   
   // 회원 구분 매핑용
   const memberMap = {};
-  getSheetDataAsJSON('회원_마스터').forEach(m => {
+  getSheetDataAsJSON('회원_마스터', true).forEach(m => {
     memberMap[m.이름] = m.구분 || '개별';
   });
 
@@ -983,14 +983,14 @@ function getPersonalStats(staffId, year, month) {
   const targetMonth = isAllMonths ? 12 : parseInt(targetMonthStr);
 
   const staffName = String(staff.이름 || '').trim();
-  const allProgs = getSheetDataAsJSON('사업_마스터');
+  const allProgs = getSheetDataAsJSON('사업_마스터', true);
   const progs = allProgs.filter(p => String(p.담당자 || '').includes(staffName));
   
   if (progs.length === 0) return { programs: [] };
 
-  const attData = getSheetDataAsJSON('출석_원장');
+  const attData = getSheetDataAsJSON('출석_원장', true);
   const memberMap = {};
-  getSheetDataAsJSON('회원_마스터').forEach(m => {
+  getSheetDataAsJSON('회원_마스터', true).forEach(m => {
     memberMap[m.이름] = m.구분 || '개별';
   });
 

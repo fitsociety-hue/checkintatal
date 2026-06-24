@@ -7,18 +7,25 @@ document.addEventListener('DOMContentLoaded', async () => {
   const user = Auth.getUser();
   const container = document.getElementById('dashboard-content');
   
-  if (user.role === '관리자') {
-    renderAdminDashboard(container);
-  } else if (user.role === '팀장') {
-    renderLeaderDashboard(container, user.team);
-  } else {
-    renderStaffDashboard(container, user);
-  }
+  window.refreshDashboard = function(forceRefresh = false) {
+    if (user.role === '관리자') {
+      renderAdminDashboard(container, forceRefresh);
+    } else if (user.role === '팀장') {
+      renderLeaderDashboard(container, user.team, forceRefresh);
+    } else {
+      renderStaffDashboard(container, user, forceRefresh);
+    }
+  };
+  
+  window.refreshDashboard();
 });
 
-async function renderAdminDashboard(container) {
+async function renderAdminDashboard(container, forceRefresh = false) {
   container.innerHTML = `
-    <h2 class="mb-3">관리자 대시보드</h2>
+    <div class="flex justify-between items-center mb-3">
+      <h2 style="margin:0;">관리자 대시보드</h2>
+      <button class="btn-secondary" onclick="window.refreshDashboard(true)" style="padding: 6px 12px; font-size: 0.9em;">새로고침</button>
+    </div>
     <div class="grid-cards mb-3" id="admin-summary">
       <div class="glass-card stat-card"><div class="spinner"></div></div>
     </div>
@@ -36,7 +43,7 @@ async function renderAdminDashboard(container) {
   `;
   
   try {
-    const res = await API.fetchGAS('getAllStats');
+    const res = await API.fetchGAS('getAllStats', forceRefresh ? { forceRefresh: true } : {});
     const stats = res.data; // assume it returns aggregated stats
     
     const summaryHtml = `
@@ -85,15 +92,20 @@ async function renderAdminDashboard(container) {
   }
 }
 
-async function renderLeaderDashboard(container, teamName) {
+async function renderLeaderDashboard(container, teamName, forceRefresh = false) {
   container.innerHTML = `
-    <h2 class="mb-3">${teamName} 대시보드</h2>
+    <div class="flex justify-between items-center mb-3">
+      <h2 style="margin:0;">${teamName} 대시보드</h2>
+      <button class="btn-secondary" onclick="window.refreshDashboard(true)" style="padding: 6px 12px; font-size: 0.9em;">새로고침</button>
+    </div>
     <div class="grid-cards mb-3" id="leader-summary">
       <div class="glass-card stat-card"><div class="spinner"></div></div>
     </div>
   `;
   try {
-    const res = await API.fetchGAS('getStats', { teamName });
+    const params = { teamName };
+    if (forceRefresh) params.forceRefresh = true;
+    const res = await API.fetchGAS('getStats', params);
     const stats = res.data || { real: 0, accum: 0, count: 0, rate: 0 };
     document.getElementById('leader-summary').innerHTML = `
       <div class="glass-card stat-card">
@@ -117,9 +129,12 @@ async function renderLeaderDashboard(container, teamName) {
   } catch(e){}
 }
 
-async function renderStaffDashboard(container, user) {
+async function renderStaffDashboard(container, user, forceRefresh = false) {
   container.innerHTML = `
-    <h2 class="mb-3">환영합니다, ${user.name}님!</h2>
+    <div class="flex justify-between items-center mb-3">
+      <h2 style="margin:0;">환영합니다, ${user.name}님!</h2>
+      <button class="btn-secondary" onclick="window.refreshDashboard(true)" style="padding: 6px 12px; font-size: 0.9em;">새로고침</button>
+    </div>
     <div class="glass-card mb-3">
       <h3 class="mb-2">내 담당 사업 (빠른 이동)</h3>
       <div class="grid-cards" id="staff-programs">
@@ -128,7 +143,9 @@ async function renderStaffDashboard(container, user) {
     </div>
   `;
   try {
-    const res = await API.fetchGAS('getPersonalStats', { staffId: user.staffId });
+    const params = { staffId: user.staffId };
+    if (forceRefresh) params.forceRefresh = true;
+    const res = await API.fetchGAS('getPersonalStats', params);
     const programs = res.data.programs || [];
     const progsDiv = document.getElementById('staff-programs');
     if (programs.length === 0) {
