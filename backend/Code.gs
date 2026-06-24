@@ -124,6 +124,11 @@ function getHeadersForSheet(sheetName) {
 }
 
 function getSheetDataAsJSON(sheetName) {
+  const version = getCacheVersion();
+  const cacheKey = 'SHEET_' + sheetName + '_' + version;
+  const cached = getCacheChunked(cacheKey);
+  if (cached) return JSON.parse(cached);
+
   const sheet = getSheet(sheetName);
   if (!sheet) return [];
   const data = sheet.getDataRange().getValues();
@@ -191,6 +196,8 @@ function getSheetDataAsJSON(sheetName) {
     }
     rows.push(obj);
   }
+  
+  putCacheChunked(cacheKey, JSON.stringify(rows));
   return rows;
 }
 
@@ -291,6 +298,7 @@ function addProgram(data) {
     data.상태 || '활성', data.목표_건수 || 0, data.목표_실인원 || 0, data.목표_연인원 || 0,
     data.담당자 || '', programId
   ]);
+  invalidateCache();
   return { programId };
 }
 
@@ -303,6 +311,7 @@ function updateProgram(programId, data) {
         data.팀명, data.사업분류, data.세부사업분류, data.사업명, data.실적유형,
         data.상태, data.목표_건수, data.목표_실인원, data.목표_연인원, data.담당자
       ]]);
+      invalidateCache();
       return true;
     }
   }
@@ -318,6 +327,7 @@ function importProgramsCSV(csvData) {
       row.담당자 || '', 'PROG_' + Math.floor(Math.random()*10000000)
     ]);
   });
+  invalidateCache();
   return true;
 }
 
@@ -345,6 +355,7 @@ function addMember(data) {
   sheet.appendRow([
     data.이름, data.시작일, data.상태 || '활성', data.장애비장애구분 || '비장애', data.구분 || '개별', data.사업명 || '', data.메모 || ''
   ]);
+  invalidateCache();
   return true;
 }
 
@@ -356,6 +367,7 @@ function updateMember(name, data) {
       sheet.getRange(i + 1, 1, 1, 7).setValues([[
         data.이름, data.시작일, data.상태 || '활성', data.장애비장애구분 || '비장애', data.구분 || '개별', data.사업명 || '', data.메모 || ''
       ]]);
+      invalidateCache();
       return true;
     }
   }
@@ -369,6 +381,7 @@ function importMembersCSV(csvData) {
       row.이름, row.시작일, row.상태 || '활성', row.장애비장애구분 || '비장애', row.구분 || '개별', row.사업명 || '', row.메모 || ''
     ]);
   });
+  invalidateCache();
   return true;
 }
 
@@ -399,6 +412,7 @@ function checkAttendance(programId, date, attendanceList, user) {
   });
   
   recalcStatsDirectly();
+  invalidateCache();
   return true;
 }
 
@@ -417,17 +431,27 @@ function submitCountOnly(programId, date, count, user) {
   ]);
   
   recalcStatsDirectly();
+  invalidateCache();
   return true;
 }
 
 function deleteExistingAttendance(programId, date) {
   const sheet = getSheet('출석_원장');
   const vals = sheet.getDataRange().getValues();
-  for (let i = vals.length - 1; i >= 1; i--) {
-    if (vals[i][2] === programId && formatDateStr(vals[i][1]) === date) {
-      sheet.deleteRow(i + 1);
+  if (vals.length <= 1) return;
+  const newVals = [vals[0]]; // keep header
+  for (let i = 1; i < vals.length; i++) {
+    if (!(vals[i][2] === programId && formatDateStr(vals[i][1]) === date)) {
+      newVals.push(vals[i]);
     }
   }
+  sheet.clearContents();
+  if (newVals.length > 0) {
+    sheet.getRange(1, 1, newVals.length, newVals[0].length).setValues(newVals);
+  }
+  
+  invalidateCache();
+  return true;
 }
 
 // ==============================================================================
@@ -472,6 +496,7 @@ function selfCheckIn(token, programId, date, name) {
     'O', 1, 'QR', name, new Date()
   ]);
   
+  invalidateCache();
   return true;
 }
 
@@ -950,4 +975,57 @@ function getPersonalStats(staffId, year, month) {
   return {
     programs: progs
   };
+}
+
+// ==============================================================================
+// 캐시 처리 (CacheService)
+// ==============================================================================
+
+function getCacheVersion() {
+  const props = PropertiesService.getScriptProperties();
+  let v = props.getProperty('DATA_VERSION');
+  if (!v) {
+    v = Date.now().toString();
+    props.setProperty('DATA_VERSION', v);
+  }
+  return v;
+}
+
+function invalidateCache() {
+  PropertiesService.getScriptProperties().setProperty('DATA_VERSION', Date.now().toString());
+}
+
+function putCacheChunked(cacheKey, str) {
+  try {
+    const cache = CacheService.getScriptCache();
+    const chunkSize = 90000;
+    const chunks = Math.ceil(str.length / chunkSize);
+    const keys = [];
+    for (let i = 0; i < chunks; i++) {
+      const chunkKey = cacheKey + '_c' + i;
+      cache.put(chunkKey, str.substring(i * chunkSize, (i + 1) * chunkSize), 600); // 10 minutes
+      keys.push(chunkKey);
+    }
+    cache.put(cacheKey + '_meta', JSON.stringify(keys), 600);
+  } catch (e) {
+    // CacheService limit errors or other errors should not break the app
+  }
+}
+
+function getCacheChunked(cacheKey) {
+  try {
+    const cache = CacheService.getScriptCache();
+    const metaStr = cache.get(cacheKey + '_meta');
+    if (!metaStr) return null;
+    const keys = JSON.parse(metaStr);
+    const chunks = cache.getAll(keys);
+    let str = '';
+    for (const k of keys) {
+      if (!chunks[k]) return null;
+      str += chunks[k];
+    }
+    return str;
+  } catch (e) {
+    return null;
+  }
 }
