@@ -136,11 +136,14 @@ function getHeadersForSheet(sheetName) {
   }
 }
 
-function getSheetDataAsJSON(sheetName) {
+function getSheetDataAsJSON(sheetName, bypassCache = false) {
   const version = getCacheVersion();
   const cacheKey = 'SHEET_' + sheetName + '_' + version;
-  const cached = getCacheChunked(cacheKey);
-  if (cached) return JSON.parse(cached);
+  
+  if (!bypassCache) {
+    const cached = getCacheChunked(cacheKey);
+    if (cached) return JSON.parse(cached);
+  }
 
   const sheet = getSheet(sheetName);
   if (!sheet) return [];
@@ -232,7 +235,7 @@ function hashPassword(password) {
 }
 
 function login(team, name, password) {
-  const staffData = getSheetDataAsJSON('직원_마스터');
+  const staffData = getSheetDataAsJSON('직원_마스터', true);
   const inputHash = hashPassword(password);
   
   // 관리자는 팀 구분을 안할 수 있으므로, 팀 필터링 적용 혹은 이름+비번만으로 매칭할 수 있음
@@ -291,7 +294,7 @@ function verifyToken(token) {
 
 function registerUser(team, name, password, role) {
   const sheet = getSheet('직원_마스터');
-  const staffData = getSheetDataAsJSON('직원_마스터');
+  const staffData = getSheetDataAsJSON('직원_마스터', true);
   
   // 중복 가입 방지 (소속 팀명 + 이름 동일하면 가입 거부)
   const isDuplicate = staffData.some(s => s.이름 === name && s.팀명 === team);
