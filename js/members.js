@@ -52,7 +52,7 @@ async function loadMembers(forceRefresh = false) {
     const res = await API.fetchGAS('getMembers', { status: 'all', forceRefresh });
     let fetchedMembers = res.data || [];
     
-    const user = Auth.currentUser;
+    const user = Auth.getUser();
     if (user && user.role !== '관리자' && user.role !== '팀장') {
       const progsRes = await API.fetchGAS('getPersonalStats', { staffId: user.staffId });
       const assignedProgs = progsRes.data.programs || [];

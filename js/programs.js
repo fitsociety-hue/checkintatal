@@ -10,7 +10,7 @@ const ProgramsLogic = {
     try {
       const res = await API.fetchGAS('getPrograms', { teamName, forceRefresh });
       let progs = res.data || [];
-      const user = Auth.currentUser;
+      const user = Auth.getUser();
       if (user && user.role !== '관리자' && user.role !== '팀장') {
         const staffName = user.name;
         progs = progs.filter(p => String(p.담당자 || '').includes(staffName));
