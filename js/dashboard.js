@@ -23,6 +23,13 @@ async function renderAdminDashboard(container) {
       <div class="glass-card stat-card"><div class="spinner"></div></div>
     </div>
     <div class="glass-card mb-3">
+      <h3 class="mb-2">관리자 설정</h3>
+      <div class="flex gap-2 items-center mt-2">
+        <input type="password" id="new-admin-pw" class="form-input" placeholder="새 관리자 비밀번호" style="max-width:200px;">
+        <button class="btn-primary" onclick="changeAdminPassword()">비밀번호 변경</button>
+      </div>
+    </div>
+    <div class="glass-card mb-3">
       <h3 class="mb-2">팀별 달성률 (평균)</h3>
       <canvas id="admin-chart"></canvas>
     </div>
@@ -138,4 +145,19 @@ async function renderStaffDashboard(container, user) {
       `).join('');
     }
   } catch(e) {}
+}
+
+window.changeAdminPassword = async function() {
+  const newPw = document.getElementById('new-admin-pw').value;
+  if (!newPw) {
+    Utils.showToast('새 비밀번호를 입력하세요.', 'error');
+    return;
+  }
+  try {
+    await API.fetchGAS('updateAdminPassword', { newPassword: newPw });
+    Utils.showToast('관리자 비밀번호가 변경되었습니다.', 'success');
+    document.getElementById('new-admin-pw').value = '';
+  } catch(e) {
+    Utils.showToast('비밀번호 변경에 실패했습니다.', 'error');
+  }
 }

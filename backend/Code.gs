@@ -80,6 +80,11 @@ function handleRequest(e, method) {
       
       // 시스템 관리
       case 'setupAutoSyncTrigger': result = setupAutoSyncTrigger(); break;
+      case 'updateAdminPassword':
+        if (!user || user.role !== '관리자') throw new Error('권한이 없습니다.');
+        PropertiesService.getScriptProperties().setProperty('ADMIN_PASSWORD', payload.newPassword);
+        result = true;
+        break;
       
       default:
         throw new Error('알 수 없는 Action입니다: ' + action);
@@ -240,10 +245,13 @@ function login(team, name, password) {
   );
   
   if (!user) {
-    // 관리자의 경우 하드코딩된 마스터 계정 허용 (초기 세팅용)
-    if (team === '관리자' && name === 'admin' && password === 'admin') {
-      const mockUser = { staffId: 'ADMIN', name: '최고관리자', team: '관리자', role: '관리자' };
-      return { token: createToken(mockUser), user: mockUser };
+    // 관리자의 경우 하드코딩된 마스터 계정 허용 (초기 세팅 및 고정 아이디)
+    if (team === '관리자' && name === 'admin') {
+      const adminPw = PropertiesService.getScriptProperties().getProperty('ADMIN_PASSWORD') || '1107';
+      if (password === adminPw) {
+        const mockUser = { staffId: 'ADMIN', name: '최고관리자', team: '관리자', role: '관리자' };
+        return { token: createToken(mockUser), user: mockUser };
+      }
     }
     throw new Error('이름 또는 비밀번호가 일치하지 않습니다.');
   }
