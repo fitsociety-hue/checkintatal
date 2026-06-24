@@ -116,7 +116,7 @@ function getHeadersForSheet(sheetName) {
   switch (sheetName) {
     case '직원_마스터': return ['직원ID', '이름', '팀명', '직위', '비밀번호', '상태', '담당사업IDs'];
     case '사업_마스터': return ['팀명', '사업분류', '세부사업분류', '사업명', '실적유형', '상태', '목표_건수', '목표_실인원', '목표_연인원', '담당자', '사업ID'];
-    case '회원_마스터': return ['이름', '시작일', '상태', '장애비장애구분', '메모', '사업명', '구분'];
+    case '회원_마스터': return ['이름', '시작일', '상태', '장애비장애구분', '구분', '사업명', '메모'];
     case '출석_원장': return ['출석ID', '날짜', '사업ID', '사업명', '팀명', '이름', '출석여부', '건수', '입력방식', '입력자', '입력시각'];
     case '실적_집계': return ['팀명', '사업명', '년도', '월', '실인원', '건수', '연인원', '목표대비_실인원(%)', '목표대비_건수(%)', '목표대비_연인원(%)'];
     default: return [];
@@ -132,12 +132,52 @@ function getSheetDataAsJSON(sheetName) {
   const expectedHeaders = getHeadersForSheet(sheetName);
   const currentHeaders = data[0].map(h => String(h).trim());
   
-  const hasValidHeaders = expectedHeaders.length > 0 && currentHeaders[0] === expectedHeaders[0];
+  // 정확한 헤더 일치 여부 확인
+  const isExactMatch = expectedHeaders.length === currentHeaders.length && 
+                       expectedHeaders.every((h, i) => currentHeaders[i] === h);
   
-  if (!hasValidHeaders) {
-    sheet.insertRowBefore(1);
+  if (!isExactMatch) {
+    // 1) 헤더가 아예 없거나 첫 컬럼부터 다르면 (신규 시트 또는 잘못된 시트) -> 초기화
+    if (currentHeaders.length === 0 || currentHeaders[0] !== expectedHeaders[0]) {
+      sheet.insertRowBefore(1);
+      sheet.getRange(1, 1, 1, expectedHeaders.length).setValues([expectedHeaders]).setFontWeight("bold").setBackground("#f3f3f3");
+      sheet.setFrozenRows(1);
+      return getSheetDataAsJSON(sheetName);
+    }
+    
+    // 2) 첫 컬럼은 맞지만 (ex: 이름) 다른 컬럼 구성이 변경된 경우 -> 기존 데이터 마이그레이션
+    const oldRows = [];
+    if (data.length > 1) {
+      for (let i = 1; i < data.length; i++) {
+        let obj = {};
+        for (let j = 0; j < currentHeaders.length; j++) {
+          if (currentHeaders[j]) {
+            obj[currentHeaders[j]] = data[i][j];
+          }
+        }
+        oldRows.push(obj);
+      }
+    }
+    
+    // 시트 초기화 후 새 헤더 작성
+    sheet.clear();
     sheet.getRange(1, 1, 1, expectedHeaders.length).setValues([expectedHeaders]).setFontWeight("bold").setBackground("#f3f3f3");
     sheet.setFrozenRows(1);
+    
+    // 기존 데이터 새 포맷에 맞게 재작성
+    if (oldRows.length > 0) {
+      const newData = oldRows.map(row => {
+        return expectedHeaders.map(h => {
+          if (h === '구분' && !row[h]) return '개별';
+          if (h === '장애비장애구분' && !row[h]) return '비장애';
+          if (h === '상태' && !row[h]) return '활성';
+          return row[h] !== undefined ? row[h] : '';
+        });
+      });
+      sheet.getRange(2, 1, newData.length, expectedHeaders.length).setValues(newData);
+    }
+    
+    // 업데이트된 시트 기준으로 다시 데이터 불러오기
     return getSheetDataAsJSON(sheetName);
   }
 
@@ -303,7 +343,7 @@ function getMembers(programId, status, programName) {
 function addMember(data) {
   const sheet = getSheet('회원_마스터');
   sheet.appendRow([
-    data.이름, data.시작일, data.상태 || '활성', data.장애비장애구분 || '비장애', data.메모 || '', data.사업명 || '', data.구분 || '개별'
+    data.이름, data.시작일, data.상태 || '활성', data.장애비장애구분 || '비장애', data.구분 || '개별', data.사업명 || '', data.메모 || ''
   ]);
   return true;
 }
@@ -314,7 +354,7 @@ function updateMember(name, data) {
   for (let i = 1; i < vals.length; i++) {
     if (vals[i][0] === name) {
       sheet.getRange(i + 1, 1, 1, 7).setValues([[
-        data.이름, data.시작일, data.상태, data.장애비장애구분, data.메모, data.사업명 || '', data.구분 || '개별'
+        data.이름, data.시작일, data.상태 || '활성', data.장애비장애구분 || '비장애', data.구분 || '개별', data.사업명 || '', data.메모 || ''
       ]]);
       return true;
     }
@@ -326,7 +366,7 @@ function importMembersCSV(csvData) {
   const sheet = getSheet('회원_마스터');
   csvData.forEach(row => {
     sheet.appendRow([
-      row.이름, row.시작일, row.상태 || '활성', row.장애비장애구분, row.메모 || '', row.사업명 || '', row.구분 || '개별'
+      row.이름, row.시작일, row.상태 || '활성', row.장애비장애구분 || '비장애', row.구분 || '개별', row.사업명 || '', row.메모 || ''
     ]);
   });
   return true;

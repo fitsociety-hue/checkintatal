@@ -60,7 +60,11 @@ const Utils = {
   },
 
   parseCSV: function(text) {
-    const lines = text.split('\n').filter(line => line.trim() !== '');
+    // BOM(Byte Order Mark) 제거
+    if (text.charCodeAt(0) === 0xFEFF) {
+      text = text.slice(1);
+    }
+    const lines = text.split('\n').map(line => line.trim()).filter(line => line !== '');
     if (lines.length === 0) return [];
     
     const headers = lines[0].split(',').map(h => h.trim());
