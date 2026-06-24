@@ -133,10 +133,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     document.querySelectorAll('.btn-delete').forEach(btn => {
-      btn.addEventListener('click', (e) => {
+      btn.addEventListener('click', async (e) => {
+        if (!confirm('해당 회원을 정말 삭제하시겠습니까? (즉시 서버에 반영됩니다)')) return;
         const memberName = e.target.getAttribute('data-name');
-        currentMembers = currentMembers.filter(m => m.이름 !== memberName);
-        renderMembersTable(filter);
+        const dateStr = document.getElementById('attendance-date').value;
+        const programId = currentProgram.사업ID;
+        
+        try {
+          await API.fetchGAS('deleteAttendanceMember', { programId, date: dateStr, memberName });
+          Utils.showToast('삭제되었습니다.', 'success');
+          // Reload attendance table to reflect real-time status
+          await renderAttendanceSection(currentProgram);
+        } catch (err) {
+          Utils.showToast('삭제 실패: ' + err.message, 'error');
+        }
       });
     });
 

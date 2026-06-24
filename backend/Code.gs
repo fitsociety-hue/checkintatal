@@ -67,6 +67,7 @@ function handleRequest(e, method) {
       case 'checkAttendance': result = checkAttendance(payload.programId, payload.date, payload.attendanceList, user); break;
       case 'getAttendanceSheet': result = getAttendanceSheet(payload.programId, payload.date); break;
       case 'submitCountOnly': result = submitCountOnly(payload.programId, payload.date, payload.count, user); break;
+      case 'deleteAttendanceMember': result = deleteAttendanceMember(payload.programId, payload.date, payload.memberName); break;
       
       // QR 출석
       case 'getQRToken': result = getQRToken(payload.programId, payload.date); break;
@@ -492,6 +493,31 @@ function deleteExistingAttendance(programId, date) {
   }
   
   invalidateCache();
+  return true;
+}
+
+function deleteAttendanceMember(programId, date, memberName) {
+  const sheet = getSheet('출석_원장');
+  const vals = sheet.getDataRange().getValues();
+  if (vals.length <= 1) return true;
+  
+  const newVals = [vals[0]]; // header
+  let deleted = false;
+  
+  for (let i = 1; i < vals.length; i++) {
+    if (vals[i][2] === programId && formatDateStr(vals[i][1]) === date && vals[i][5] === memberName) {
+      deleted = true;
+      continue;
+    }
+    newVals.push(vals[i]);
+  }
+  
+  if (deleted) {
+    sheet.clearContents();
+    sheet.getRange(1, 1, newVals.length, newVals[0].length).setValues(newVals);
+    recalcStatsDirectly();
+    invalidateCache();
+  }
   return true;
 }
 
