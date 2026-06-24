@@ -213,13 +213,29 @@ function getSheetDataAsJSON(sheetName) {
 // 인증 및 권한
 // ==============================================================================
 
+function hashPassword(password) {
+  const digest = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, password, Utilities.Charset.UTF_8);
+  let hashStr = '';
+  for (let i = 0; i < digest.length; i++) {
+    let byte = digest[i];
+    if (byte < 0) byte += 256;
+    let hex = byte.toString(16);
+    if (hex.length == 1) hex = '0' + hex;
+    hashStr += hex;
+  }
+  return hashStr;
+}
+
 function login(team, name, password) {
   const staffData = getSheetDataAsJSON('직원_마스터');
+  const inputHash = hashPassword(password);
   
   // 관리자는 팀 구분을 안할 수 있으므로, 팀 필터링 적용 혹은 이름+비번만으로 매칭할 수 있음
   const user = staffData.find(s => 
     String(s.이름 || '').trim() === String(name || '').trim() && 
-    (String(s.비밀번호 || '').trim() === String(password || '').trim() || String(s.비밀번호해시 || '').trim() === String(password || '').trim()) && 
+    (String(s.비밀번호 || '').trim() === String(password || '').trim() || 
+     String(s.비밀번호 || '').trim() === inputHash || 
+     String(s.비밀번호해시 || '').trim() === inputHash) && 
     String(s.상태 || '').trim() !== '비활성'
   );
   
@@ -276,9 +292,13 @@ function registerUser(team, name, password, role) {
 
   // 중복이 아니면 가입 허용
   const newId = 'STAFF_' + new Date().getTime();
+  const hashedPw = hashPassword(password);
+  
   sheet.appendRow([
-    newId, name, team, role || '팀원', password, '활성', ''
+    newId, name, team, role || '팀원', hashedPw, '활성', ''
   ]);
+  
+  invalidateCache(); // 회원가입 후 즉시 로그인 가능하도록 캐시 무효화
   
   return true;
 }
