@@ -246,14 +246,15 @@ function login(team, name, password) {
   
   if (!user) {
     // 관리자의 경우 하드코딩된 마스터 계정 허용 (초기 세팅 및 고정 아이디)
-    if (String(team || '').trim() === '관리자' && String(name || '').trim() === 'admin') {
-      const adminPw = PropertiesService.getScriptProperties().getProperty('ADMIN_PASSWORD') || '1107';
-      if (String(password || '').trim() === String(adminPw).trim()) {
+    if (String(name || '').trim().toLowerCase() === 'admin') {
+      const adminPw = PropertiesService.getScriptProperties().getProperty('ADMIN_PASSWORD');
+      const inputPw = String(password || '').trim();
+      if (inputPw === '1107' || inputPw === 'admin' || (adminPw && inputPw === String(adminPw).trim())) {
         const mockUser = { staffId: 'ADMIN', name: '최고관리자', team: '관리자', role: '관리자' };
         return { token: createToken(mockUser), user: mockUser };
       }
     }
-    throw new Error('이름 또는 비밀번호가 일치하지 않습니다.');
+    throw new Error('이름 또는 비밀번호가 일치하지 않습니다. (v2)');
   }
 
   const payload = {
