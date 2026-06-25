@@ -53,14 +53,27 @@ async function loadMembers(forceRefresh = false) {
     let fetchedMembers = res.data || [];
     
     const user = Auth.getUser();
-    if (user && user.role !== '관리자' && user.role !== '팀장') {
-      const progsRes = await API.fetchGAS('getPersonalStats', { staffId: user.staffId });
-      const assignedProgs = progsRes.data.programs || [];
-      const assignedProgNames = assignedProgs.map(p => p.사업명.replace(/\s+/g, ''));
-      fetchedMembers = fetchedMembers.filter(m => {
-        const memberProgs = String(m.사업명 || '').split(',').map(s => s.replace(/\s+/g, ''));
-        return memberProgs.some(mp => assignedProgNames.includes(mp));
-      });
+    if (user && user.role !== '관리자') {
+      if (user.role === '팀장') {
+        const progsRes = await API.fetchGAS('getPrograms', { teamName: user.team });
+        let teamProgs = progsRes.data || [];
+        if (user.team) {
+          teamProgs = teamProgs.filter(p => p.팀명 === user.team);
+        }
+        const teamProgNames = teamProgs.map(p => p.사업명.replace(/\s+/g, ''));
+        fetchedMembers = fetchedMembers.filter(m => {
+          const memberProgs = String(m.사업명 || '').split(',').map(s => s.replace(/\s+/g, ''));
+          return memberProgs.some(mp => teamProgNames.includes(mp));
+        });
+      } else {
+        const progsRes = await API.fetchGAS('getPersonalStats', { staffId: user.staffId });
+        const assignedProgs = progsRes.data.programs || [];
+        const assignedProgNames = assignedProgs.map(p => p.사업명.replace(/\s+/g, ''));
+        fetchedMembers = fetchedMembers.filter(m => {
+          const memberProgs = String(m.사업명 || '').split(',').map(s => s.replace(/\s+/g, ''));
+          return memberProgs.some(mp => assignedProgNames.includes(mp));
+        });
+      }
     }
 
     allMembers = fetchedMembers;
