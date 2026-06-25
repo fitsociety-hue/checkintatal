@@ -447,7 +447,9 @@ function checkAttendance(programId, date, attendanceList, user) {
 
   const inputterName = (user && user.name) ? user.name : '시스템';
 
-  attendanceList.forEach(att => {
+  const attendedList = attendanceList.filter(att => att.출석여부 === 'O');
+
+  attendedList.forEach(att => {
     const attId = 'ATT_' + new Date().getTime() + Math.floor(Math.random()*1000);
     sheet.appendRow([
       attId, date, programId, prog.사업명, prog.팀명, att.이름, 
