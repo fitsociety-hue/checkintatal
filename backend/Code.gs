@@ -270,7 +270,7 @@ function login(team, name, password) {
     staffId: user.직원ID,
     name: user.이름,
     team: user.팀명,
-    role: user.직위, // 관리자, 팀장, 팀원
+    role: String(user.직위 || user.권한 || '팀원').trim(), // 관리자, 팀장, 팀원
     담당사업IDs: user.담당사업IDs,
     hasDeletePin: !!user.삭제비밀번호
   };
@@ -1280,8 +1280,13 @@ function setDeletePin(pin, user) {
 }
 
 function verifyDeletePin(pin, user) {
-  if (!user || (user.role !== '팀장' && user.role !== '관리자')) {
-    throw new Error('삭제 권한이 없습니다.');
+  if (!user) {
+    throw new Error('인증 정보가 없습니다. 다시 로그인해 주세요.');
+  }
+  
+  const role = String(user.role || user.직위 || user.권한 || '').trim();
+  if (role !== '팀장' && role !== '관리자') {
+    throw new Error('삭제 권한이 없습니다. (현재 시스템에 인식된 권한: ' + (role || '없음') + ') 권한 오류가 지속되면 우측 상단의 로그아웃 후 다시 로그인해 주세요.');
   }
   
   if (user.staffId === 'ADMIN') {
