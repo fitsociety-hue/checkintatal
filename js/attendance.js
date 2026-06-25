@@ -109,14 +109,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     filtered.forEach((m) => {
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td>${m.이름} ${m.장애비장애구분 === '장애' ? '<span class="badge badge-warning" style="font-size:10px">장애</span>' : ''}</td>
-        <td>
+        <td data-label="이름">${m.이름} ${m.장애비장애구분 === '장애' ? '<span class="badge badge-warning" style="font-size:10px">장애</span>' : ''}</td>
+        <td data-label="출석여부">
           <button class="btn-check ${m.attended ? 'btn-primary' : 'btn-secondary'}" data-name="${m.이름}" style="padding: 6px 12px; border-radius: 20px;">
             ${m.attended ? '출석 O' : '미출석'}
           </button>
         </td>
-        <td><input type="text" class="form-input remark-input" data-name="${m.이름}" style="padding: 6px;" placeholder="비고 입력" value="${m.remark || ''}"></td>
-        <td>
+        <td data-label="비고"><input type="text" class="form-input remark-input" data-name="${m.이름}" style="padding: 6px;" placeholder="비고 입력" value="${m.remark || ''}"></td>
+        <td data-label="관리">
           <button class="btn-delete-member btn-error" data-name="${m.이름}" style="padding: 6px 12px; border-radius: 20px; border: none; background-color: #ff4d4f; color: white; cursor: pointer;">삭제</button>
         </td>
       `;

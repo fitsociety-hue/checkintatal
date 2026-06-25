@@ -38,7 +38,7 @@ const ProgramsLogic = {
     });
 
     container.innerHTML = `
-      <div class="grid-cards" style="grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 20px;">
+      <div class="grid-cards" style="margin-bottom: 20px;">
         <div>
           <label class="form-label">세부분류</label>
           <select id="sel-cat2" class="form-select">

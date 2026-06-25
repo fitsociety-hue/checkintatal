@@ -95,14 +95,14 @@ function renderTable(programs) {
   tbody.innerHTML = programs.map(p => {
     return `
       <tr>
-        <td>${p.팀명 || '-'}</td>
-        <td>${p.사업명 || '-'}</td>
-        <td>${Utils.formatNumber(p.실인원 || 0)}</td>
-        <td>${Utils.formatNumber(p.건수 || 0)}</td>
-        <td>${Utils.formatNumber(p.연인원 || 0)}</td>
-        <td><span style="color:${getColor(p.목표대비_실인원)}">${p.목표대비_실인원 || 0}%</span></td>
-        <td><span style="color:${getColor(p.목표대비_건수)}">${p.목표대비_건수 || 0}%</span></td>
-        <td><span style="color:${getColor(p.목표대비_연인원)}">${p.목표대비_연인원 || 0}%</span></td>
+        <td data-label="팀명">${p.팀명 || '-'}</td>
+        <td data-label="사업명">${p.사업명 || '-'}</td>
+        <td data-label="실인원">${Utils.formatNumber(p.실인원 || 0)}</td>
+        <td data-label="건수">${Utils.formatNumber(p.건수 || 0)}</td>
+        <td data-label="연인원">${Utils.formatNumber(p.연인원 || 0)}</td>
+        <td data-label="목표대비(실인원)"><span style="color:${getColor(p.목표대비_실인원)}">${p.목표대비_실인원 || 0}%</span></td>
+        <td data-label="목표대비(건수)"><span style="color:${getColor(p.목표대비_건수)}">${p.목표대비_건수 || 0}%</span></td>
+        <td data-label="목표대비(연인원)"><span style="color:${getColor(p.목표대비_연인원)}">${p.목표대비_연인원 || 0}%</span></td>
       </tr>
     `;
   }).join('');

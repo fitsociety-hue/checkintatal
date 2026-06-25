@@ -109,14 +109,14 @@ function renderTable() {
   pageData.forEach(m => {
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td>${m.이름}</td>
-      <td>${Utils.formatDate(m.시작일)}</td>
-      <td><span class="badge ${m.상태 === '활성' ? 'badge-success' : (m.상태 === '보류' ? 'badge-warning' : 'badge-error')}">${m.상태}</span></td>
-      <td><span class="badge ${m.장애비장애구분 === '장애' ? 'badge-warning' : 'badge-neutral'}">${m.장애비장애구분}</span></td>
-      <td><span class="badge ${m.구분 === '그룹' ? 'badge-primary' : 'badge-neutral'}">${m.구분 || '개별'}</span></td>
-      <td>${m.사업명 || ''}</td>
-      <td>${m.메모 || ''}</td>
-      <td>
+      <td data-label="이름">${m.이름}</td>
+      <td data-label="시작일">${Utils.formatDate(m.시작일)}</td>
+      <td data-label="상태"><span class="badge ${m.상태 === '활성' ? 'badge-success' : (m.상태 === '보류' ? 'badge-warning' : 'badge-error')}">${m.상태}</span></td>
+      <td data-label="장애여부"><span class="badge ${m.장애비장애구분 === '장애' ? 'badge-warning' : 'badge-neutral'}">${m.장애비장애구분}</span></td>
+      <td data-label="구분"><span class="badge ${m.구분 === '그룹' ? 'badge-primary' : 'badge-neutral'}">${m.구분 || '개별'}</span></td>
+      <td data-label="사업명">${m.사업명 || ''}</td>
+      <td data-label="메모">${m.메모 || ''}</td>
+      <td data-label="관리">
         <button class="btn-ghost" onclick="editMember('${m.이름}')">수정</button>
       </td>
     `;
