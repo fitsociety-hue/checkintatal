@@ -281,9 +281,9 @@ function login(team, name, password) {
 function createToken(payload) {
   payload.exp = new Date().getTime() + (8 * 60 * 60 * 1000); // 8시간 만료
   const secret = PropertiesService.getScriptProperties().getProperty('JWT_SECRET') || 'DEFAULT_SECRET_KEY';
-  const header = Utilities.base64Encode(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
-  const payloadStr = Utilities.base64Encode(JSON.stringify(payload));
-  const signature = Utilities.base64Encode(Utilities.computeHmacSha256Signature(header + '.' + payloadStr, secret));
+  const header = Utilities.base64EncodeWebSafe(JSON.stringify({ alg: 'HS256', typ: 'JWT' }), Utilities.Charset.UTF_8);
+  const payloadStr = Utilities.base64EncodeWebSafe(JSON.stringify(payload), Utilities.Charset.UTF_8);
+  const signature = Utilities.base64EncodeWebSafe(Utilities.computeHmacSha256Signature(header + '.' + payloadStr, secret));
   return `${header}.${payloadStr}.${signature}`;
 }
 
@@ -291,7 +291,12 @@ function verifyToken(token) {
   try {
     const parts = token.split('.');
     if (parts.length !== 3) return null;
-    const payload = JSON.parse(Utilities.newBlob(Utilities.base64Decode(parts[1])).getDataAsString());
+    
+    // Base64WebSafe로 디코딩 (한글 깨짐 방지)
+    const decodedBytes = Utilities.base64DecodeWebSafe(parts[1]);
+    const payloadJsonStr = Utilities.newBlob(decodedBytes).getDataAsString();
+    const payload = JSON.parse(payloadJsonStr);
+    
     if (new Date().getTime() > payload.exp) return null; // 만료됨
     return payload;
   } catch (e) {
