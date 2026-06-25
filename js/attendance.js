@@ -81,17 +81,18 @@ document.addEventListener('DOMContentLoaded', async () => {
           }
         });
 
-        renderMembersTable();
+        renderMembersGrid();
       } catch (e) {
         currentMembers = [];
-        renderMembersTable();
+        renderMembersGrid();
       }
     }
   }
 
-  function renderMembersTable(filter = '') {
-    const tbody = document.querySelector('#members-table tbody');
-    tbody.innerHTML = '';
+  function renderMembersGrid(filter = '') {
+    const grid = document.querySelector('#members-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
     
     let filtered = currentMembers;
     if (filter) {
@@ -102,37 +103,82 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('attendance-counter').textContent = `출석 ${attCount}명 / 전체 ${currentMembers.length}명`;
 
     if (filtered.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="4" class="text-center">회원이 없습니다.</td></tr>';
+      grid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: 20px;">회원이 없습니다.</div>';
       return;
     }
 
     filtered.forEach((m) => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td data-label="이름">${m.이름} ${m.장애비장애구분 === '장애' ? '<span class="badge badge-warning" style="font-size:10px">장애</span>' : ''}</td>
-        <td data-label="출석여부">
-          <button class="btn-check ${m.attended ? 'btn-primary' : 'btn-secondary'}" data-name="${m.이름}" style="padding: 6px 12px; border-radius: 20px;">
-            ${m.attended ? '출석 O' : '미출석'}
-          </button>
-        </td>
-        <td data-label="비고"><input type="text" class="form-input remark-input" data-name="${m.이름}" style="padding: 6px;" placeholder="비고 입력" value="${m.remark || ''}"></td>
-        <td data-label="관리">
-          <button class="btn-delete-member btn-error" data-name="${m.이름}" style="padding: 6px 12px; border-radius: 20px; border: none; background-color: #ff4d4f; color: white; cursor: pointer;">삭제</button>
-        </td>
+      const isExpanded = (expandedMemberName === m.이름);
+      const card = document.createElement('div');
+      card.className = `att-card ${m.attended ? 'attended' : ''} ${isExpanded ? 'expanded' : ''}`;
+      card.setAttribute('data-name', m.이름);
+      
+      const badge = m.장애비장애구분 === '장애' ? '<span class="badge badge-warning" style="font-size:10px; margin-left:4px;">장애</span>' : '';
+      
+      card.innerHTML = `
+        <div class="name-display">${m.이름}${badge}</div>
+        <div class="expanded-content">
+          <input type="text" class="form-input remark-input" data-name="${m.이름}" placeholder="비고 입력" value="${m.remark || ''}">
+          <div class="att-card-actions">
+            <button class="btn-ghost btn-cancel-att" data-name="${m.이름}" style="flex:1; border: 1px solid #ccc;">출석 취소</button>
+            <button class="btn-error btn-delete-member" data-name="${m.이름}" style="flex:1;">명단 삭제</button>
+          </div>
+        </div>
       `;
-      tbody.appendChild(tr);
+      grid.appendChild(card);
     });
 
-    document.querySelectorAll('.btn-check').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const memberName = e.target.getAttribute('data-name');
+    // Event Delegation for Grid Interactions
+    grid.querySelectorAll('.att-card').forEach(card => {
+      card.addEventListener('click', (e) => {
+        // Prevent trigger if clicking on inputs or buttons inside the card
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
+        
+        const memberName = card.getAttribute('data-name');
         const member = currentMembers.find(m => m.이름 === memberName);
-        if (member) member.attended = !member.attended;
-        renderMembersTable(filter);
+        if (!member) return;
+
+        if (!member.attended) {
+          // 1st Tap: Mark as Attended
+          member.attended = true;
+          expandedMemberName = null; // collapse others
+          renderMembersGrid(filter);
+        } else {
+          // 2nd Tap (already attended): Toggle expanded state
+          if (expandedMemberName === memberName) {
+            expandedMemberName = null; // collapse
+          } else {
+            expandedMemberName = memberName; // expand
+          }
+          renderMembersGrid(filter);
+        }
       });
     });
 
-    document.querySelectorAll('.btn-delete-member').forEach(btn => {
+    // Remark inputs
+    grid.querySelectorAll('.remark-input').forEach(input => {
+      input.addEventListener('input', (e) => {
+        const memberName = e.target.getAttribute('data-name');
+        const member = currentMembers.find(m => m.이름 === memberName);
+        if (member) member.remark = e.target.value;
+      });
+    });
+
+    // Cancel Attendance Button
+    grid.querySelectorAll('.btn-cancel-att').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const memberName = e.target.getAttribute('data-name');
+        const member = currentMembers.find(m => m.이름 === memberName);
+        if (member) {
+          member.attended = false;
+          expandedMemberName = null;
+          renderMembersGrid(filter);
+        }
+      });
+    });
+
+    // Delete Member Button
+    grid.querySelectorAll('.btn-delete-member').forEach(btn => {
       btn.addEventListener('click', async (e) => {
         if (!confirm('해당 회원을 정말 삭제하시겠습니까? (즉시 서버에 반영됩니다)')) return;
         const memberName = e.target.getAttribute('data-name');
@@ -143,34 +189,26 @@ document.addEventListener('DOMContentLoaded', async () => {
           await API.fetchGAS('deleteAttendanceMember', { programId, date: dateStr, memberName });
           Utils.showToast('삭제되었습니다.', 'success');
           // Reload attendance table to reflect real-time status
-          await renderAttendanceSection(currentProgram);
+          renderAttendanceSection(currentProgram);
         } catch (err) {
-          Utils.showToast('삭제 실패: ' + err.message, 'error');
+          Utils.showToast('삭제 중 오류가 발생했습니다.', 'error');
         }
-      });
-    });
-
-    document.querySelectorAll('.remark-input').forEach(input => {
-      input.addEventListener('change', (e) => {
-        const memberName = e.target.getAttribute('data-name');
-        const member = currentMembers.find(m => m.이름 === memberName);
-        if (member) member.remark = e.target.value;
       });
     });
   }
 
   document.getElementById('search-member').addEventListener('input', (e) => {
-    renderMembersTable(e.target.value);
+    renderMembersGrid(e.target.value);
   });
 
   document.getElementById('btn-check-all').addEventListener('click', () => {
     currentMembers.forEach(m => m.attended = true);
-    renderMembersTable();
+    renderMembersGrid();
   });
 
   document.getElementById('btn-uncheck-all').addEventListener('click', () => {
     currentMembers.forEach(m => m.attended = false);
-    renderMembersTable();
+    renderMembersGrid();
   });
 
   document.getElementById('attendance-date').addEventListener('change', async () => {

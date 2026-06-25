@@ -334,6 +334,79 @@ button {
   gap: 16px;
 }
 
+/* Attendance Grid UI */
+.attendance-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.att-card {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-card);
+  padding: 16px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 80px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+}
+
+.att-card .name-display {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text);
+  pointer-events: none; /* Let the card handle clicks */
+}
+
+.att-card.attended {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: white;
+  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+}
+
+.att-card.attended .name-display {
+  color: white;
+}
+
+.att-card.expanded {
+  grid-column: 1 / -1; /* Span full width when expanded */
+  background: white;
+  border: 2px solid var(--color-primary);
+  padding: 20px;
+  min-height: auto;
+}
+
+.att-card.expanded .name-display {
+  color: var(--color-primary);
+  font-size: 18px;
+  margin-bottom: 16px;
+}
+
+.att-card .expanded-content {
+  display: none;
+  width: 100%;
+}
+
+.att-card.expanded .expanded-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.att-card-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
 /* Utilities */
 .text-center { text-align: center; }
 .mb-1 { margin-bottom: 8px; }
