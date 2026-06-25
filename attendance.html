@@ -60,6 +60,46 @@
             </div>
           </div>
           
+          <!-- Unspecified input -->
+          <div id="unspecified-section" class="hidden">
+            <div class="flex gap-2" style="flex-wrap: wrap;">
+              <div class="form-group flex-1" style="min-width: 100px;">
+                <label class="form-label">실인원</label>
+                <input type="number" id="unspec-real" class="form-input" min="0" value="0">
+              </div>
+              <div class="form-group flex-1" style="min-width: 100px;">
+                <label class="form-label">건수</label>
+                <input type="number" id="unspec-count" class="form-input" min="0" value="0">
+              </div>
+              <div class="form-group flex-1" style="min-width: 150px;">
+                <label class="form-label flex justify-between items-center">연인원 <button id="btn-toggle-unspec-details" class="btn-ghost" style="padding: 2px 6px; font-size: 12px; height: auto;">+ 세부내용 추가</button></label>
+                <input type="number" id="unspec-accum" class="form-input" min="0" value="0">
+              </div>
+            </div>
+            
+            <div id="unspec-details" class="glass-card mt-2 hidden" style="background: rgba(0,0,0,0.02);">
+              <h4 class="mb-2" style="font-size: 14px; color: var(--color-primary-dark);">연인원 세부내용</h4>
+              <div class="flex gap-2 mb-2" style="flex-wrap: wrap;">
+                <div class="form-group flex-1" style="min-width: 80px;">
+                  <label class="form-label">직원</label>
+                  <input type="number" id="unspec-staff" class="form-input" min="0" value="0">
+                </div>
+                <div class="form-group flex-1" style="min-width: 80px;">
+                  <label class="form-label">장애인</label>
+                  <input type="number" id="unspec-disabled" class="form-input" min="0" value="0">
+                </div>
+                <div class="form-group flex-1" style="min-width: 120px;">
+                  <label class="form-label">비장애인(지역주민)</label>
+                  <input type="number" id="unspec-nondisabled" class="form-input" min="0" value="0">
+                </div>
+              </div>
+              <div class="form-group mb-0">
+                <label class="form-label">특이사항(비고)</label>
+                <input type="text" id="unspec-remark" class="form-input" placeholder="비고 입력">
+              </div>
+            </div>
+          </div>
+          
           <!-- Members list -->
           <div id="members-section" class="hidden">
             <div class="flex flex-mobile-col justify-between items-center mb-2">

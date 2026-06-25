@@ -39,15 +39,35 @@ document.addEventListener('DOMContentLoaded', async () => {
   async function renderAttendanceSection(program) {
     const countOnlyDiv = document.getElementById('count-only-section');
     const membersDiv = document.getElementById('members-section');
+    const unspecDiv = document.getElementById('unspecified-section');
     const dateStr = document.getElementById('attendance-date').value;
     
-    countOnlyDiv.classList.add('hidden');
-    membersDiv.classList.add('hidden');
+    if (countOnlyDiv) countOnlyDiv.classList.add('hidden');
+    if (membersDiv) membersDiv.classList.add('hidden');
+    if (unspecDiv) unspecDiv.classList.add('hidden');
 
     if (program.실적유형 === '건수') {
-      countOnlyDiv.classList.remove('hidden');
+      if (countOnlyDiv) countOnlyDiv.classList.remove('hidden');
+    } else if (program.실적유형 === '불특정 인원(실인원, 건수, 연인원)') {
+      if (unspecDiv) unspecDiv.classList.remove('hidden');
+      
+      try {
+        const attRes = await API.fetchGAS('getAttendanceSheet', { programId: program.사업ID, date: dateStr, forceRefresh: true });
+        const existingAtt = attRes.data || [];
+        const unspecAtt = existingAtt.find(a => a.이름 === '불특정_인원_입력');
+        
+        document.getElementById('unspec-real').value = unspecAtt ? (unspecAtt.실인원 || 0) : 0;
+        document.getElementById('unspec-count').value = unspecAtt ? (unspecAtt.건수 || 0) : 0;
+        document.getElementById('unspec-accum').value = unspecAtt ? (unspecAtt.연인원 || 0) : 0;
+        document.getElementById('unspec-staff').value = unspecAtt ? (unspecAtt.세부_직원 || 0) : 0;
+        document.getElementById('unspec-disabled').value = unspecAtt ? (unspecAtt.세부_장애인 || 0) : 0;
+        document.getElementById('unspec-nondisabled').value = unspecAtt ? (unspecAtt.세부_비장애인 || 0) : 0;
+        document.getElementById('unspec-remark').value = unspecAtt ? (unspecAtt.비고 || '') : '';
+      } catch (e) {
+        console.error('Error fetching unspec attendance:', e);
+      }
     } else {
-      membersDiv.classList.remove('hidden');
+      if (membersDiv) membersDiv.classList.remove('hidden');
       
       // Fetch members for the program
       try {
@@ -227,6 +247,41 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (currentProgram) await renderAttendanceSection(currentProgram);
   });
 
+  const btnToggleUnspec = document.getElementById('btn-toggle-unspec-details');
+  if (btnToggleUnspec) {
+    btnToggleUnspec.addEventListener('click', (e) => {
+      e.preventDefault();
+      const detailsDiv = document.getElementById('unspec-details');
+      if (detailsDiv) {
+        if (detailsDiv.classList.contains('hidden')) {
+          detailsDiv.classList.remove('hidden');
+          btnToggleUnspec.textContent = '- 세부내용 닫기';
+        } else {
+          detailsDiv.classList.add('hidden');
+          btnToggleUnspec.textContent = '+ 세부내용 추가';
+        }
+      }
+    });
+  }
+
+  // Auto-sum logic for unspecified details to accumCount
+  const unspecInputs = ['unspec-staff', 'unspec-disabled', 'unspec-nondisabled'];
+  unspecInputs.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.addEventListener('input', () => {
+        const staff = parseInt(document.getElementById('unspec-staff').value, 10) || 0;
+        const disabled = parseInt(document.getElementById('unspec-disabled').value, 10) || 0;
+        const nondisabled = parseInt(document.getElementById('unspec-nondisabled').value, 10) || 0;
+        const total = staff + disabled + nondisabled;
+        
+        if (total > 0) {
+          document.getElementById('unspec-accum').value = total;
+        }
+      });
+    }
+  });
+
   // Save functionality
   document.getElementById('btn-save').addEventListener('click', async () => {
     if (!currentProgram) return;
@@ -236,6 +291,17 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (currentProgram.실적유형 === '건수') {
         const count = document.getElementById('input-count').value;
         await API.fetchGAS('submitCountOnly', { programId: currentProgram.사업ID, date: dateStr, count: parseInt(count, 10) });
+      } else if (currentProgram.실적유형 === '불특정 인원(실인원, 건수, 연인원)') {
+        const data = {
+          realCount: parseInt(document.getElementById('unspec-real').value, 10) || 0,
+          count: parseInt(document.getElementById('unspec-count').value, 10) || 0,
+          accumCount: parseInt(document.getElementById('unspec-accum').value, 10) || 0,
+          staffCount: parseInt(document.getElementById('unspec-staff').value, 10) || 0,
+          disabledCount: parseInt(document.getElementById('unspec-disabled').value, 10) || 0,
+          nonDisabledCount: parseInt(document.getElementById('unspec-nondisabled').value, 10) || 0,
+          remark: document.getElementById('unspec-remark').value || ''
+        };
+        await API.fetchGAS('submitUnspecifiedAttendance', { programId: currentProgram.사업ID, date: dateStr, data: data });
       } else {
         const attendanceList = currentMembers.map(m => ({
           이름: m.이름,
