@@ -51,17 +51,20 @@ document.addEventListener('DOMContentLoaded', async () => {
       membersDiv.classList.remove('hidden');
       
       // Fetch members for the program
-      // 백엔드(GAS) 코드의 필터링 로직이 구버전으로 배포되어 있을 가능성을 대비하여,
-      // 프론트엔드에서 모든 회원을 가져온 뒤 사업명으로 직접 부분일치(includes) 필터링합니다.
       try {
-        const res = await API.fetchGAS('getMembers', { programId: 'all', forceRefresh: true });
+        const res = await API.fetchGAS('getMembers', { status: '활성', forceRefresh: true });
         const allMembers = res.data || [];
         
         if (program.사업명) {
           const normSearch = String(program.사업명).replace(/\s+/g, '');
+          console.log('[Attendance] Searching for program:', normSearch);
           currentMembers = allMembers.filter(m => {
-            const memberPrograms = String(m.사업명 || '').replace(/\s+/g, '');
-            return memberPrograms.includes(normSearch);
+            const mProgStr = String(m.사업명 || '').replace(/\s+/g, '');
+            const isMatch = mProgStr.includes(normSearch) || normSearch.includes(mProgStr);
+            if (isMatch) {
+              console.log('[Attendance] Matched member:', m.이름, 'with programs:', mProgStr);
+            }
+            return isMatch;
           });
         } else {
           currentMembers = allMembers;
@@ -93,6 +96,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         renderMembersGrid();
       } catch (e) {
+        console.error('Error fetching members or attendance:', e);
+        Utils.showToast('데이터를 불러오는 중 오류가 발생했습니다: ' + e.message, 'error');
         currentMembers = [];
         renderMembersGrid();
       }
