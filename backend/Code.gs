@@ -281,8 +281,12 @@ function login(team, name, password) {
 function createToken(payload) {
   payload.exp = new Date().getTime() + (8 * 60 * 60 * 1000); // 8시간 만료
   const secret = PropertiesService.getScriptProperties().getProperty('JWT_SECRET') || 'DEFAULT_SECRET_KEY';
-  const header = Utilities.base64EncodeWebSafe(JSON.stringify({ alg: 'HS256', typ: 'JWT' }), Utilities.Charset.UTF_8);
-  const payloadStr = Utilities.base64EncodeWebSafe(JSON.stringify(payload), Utilities.Charset.UTF_8);
+  const header = Utilities.base64EncodeWebSafe(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
+  
+  // URL-encode payload to avoid UTF-8 corruption during base64 encode/decode
+  const payloadAscii = encodeURIComponent(JSON.stringify(payload));
+  const payloadStr = Utilities.base64EncodeWebSafe(payloadAscii);
+  
   const signature = Utilities.base64EncodeWebSafe(Utilities.computeHmacSha256Signature(header + '.' + payloadStr, secret));
   return `${header}.${payloadStr}.${signature}`;
 }
@@ -294,7 +298,13 @@ function verifyToken(token) {
     
     // Base64WebSafe로 디코딩 (한글 깨짐 방지)
     const decodedBytes = Utilities.base64DecodeWebSafe(parts[1]);
-    const payloadJsonStr = Utilities.newBlob(decodedBytes).getDataAsString();
+    let payloadJsonStr = Utilities.newBlob(decodedBytes).getDataAsString();
+    
+    // URI 인코딩 방식 토큰 지원 (한글 깨짐 근본적 해결)
+    if (payloadJsonStr.startsWith('%7B')) {
+      payloadJsonStr = decodeURIComponent(payloadJsonStr);
+    }
+    
     const payload = JSON.parse(payloadJsonStr);
     
     if (new Date().getTime() > payload.exp) return null; // 만료됨
