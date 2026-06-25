@@ -252,11 +252,90 @@ document.addEventListener('DOMContentLoaded', async () => {
       new QRCode(document.getElementById('qrcode'), {
         text: qrUrl,
         width: 200,
-        height: 200,
+        height: 200
       });
       
       document.getElementById('qr-link').href = qrUrl;
       document.getElementById('qr-modal').classList.add('active');
-    } catch(e) {}
+    } catch (e) {}
+  });
+
+  // Kiosk Mode Logic
+  let kioskMode = false;
+  let selectedKioskMember = null;
+
+  document.getElementById('btn-enter-kiosk').addEventListener('click', () => {
+    if (!currentProgram) return Utils.showToast('사업을 먼저 선택해주세요.', 'error');
+    kioskMode = true;
+    selectedKioskMember = null;
+    document.getElementById('kiosk-overlay').classList.remove('hidden');
+    document.getElementById('kiosk-title').textContent = `${currentProgram.사업명} 출석체크`;
+    renderKioskGrid();
+  });
+
+  document.getElementById('btn-exit-kiosk').addEventListener('click', () => {
+    kioskMode = false;
+    document.getElementById('kiosk-overlay').classList.add('hidden');
+    renderAttendanceSection(currentProgram); // Refresh staff UI
+  });
+
+  function renderKioskGrid() {
+    const grid = document.getElementById('kiosk-grid');
+    grid.innerHTML = '';
+    
+    const saveBtn = document.getElementById('btn-kiosk-save');
+    if (selectedKioskMember) {
+      saveBtn.disabled = false;
+      saveBtn.textContent = `${selectedKioskMember}님 출석 저장하기`;
+    } else {
+      saveBtn.disabled = true;
+      saveBtn.textContent = `이름을 선택해주세요`;
+    }
+
+    currentMembers.forEach(m => {
+      const card = document.createElement('div');
+      const isSelected = (selectedKioskMember === m.이름);
+      
+      if (m.attended) {
+        card.className = `att-card`;
+        card.style.background = '#e2e8f0';
+        card.style.borderColor = '#cbd5e1';
+        card.style.color = '#64748b';
+        card.innerHTML = `<div class="name-display" style="color:#64748b;">${m.이름}</div><div style="font-size:12px; margin-top:4px;">출석 완료</div>`;
+      } else {
+        card.className = `att-card ${isSelected ? 'attended' : ''}`;
+        card.innerHTML = `<div class="name-display">${m.이름}</div>`;
+        card.addEventListener('click', () => {
+          selectedKioskMember = m.이름;
+          renderKioskGrid();
+        });
+      }
+      grid.appendChild(card);
+    });
+  }
+
+  document.getElementById('btn-kiosk-save').addEventListener('click', async () => {
+    if (!selectedKioskMember) return;
+    const memberName = selectedKioskMember;
+    const dateStr = document.getElementById('attendance-date').value;
+    const programId = currentProgram.사업ID;
+    
+    document.getElementById('btn-kiosk-save').disabled = true;
+    document.getElementById('btn-kiosk-save').textContent = '저장 중...';
+    
+    try {
+      await API.fetchGAS('kioskCheckIn', { programId, date: dateStr, memberName });
+      alert(`${memberName}님 출석 완료 되었습니다.`);
+      
+      const m = currentMembers.find(x => x.이름 === memberName);
+      if (m) m.attended = true;
+      
+      selectedKioskMember = null;
+      renderKioskGrid();
+    } catch (err) {
+      alert(`오류: ${err.message}`);
+      document.getElementById('btn-kiosk-save').disabled = false;
+      document.getElementById('btn-kiosk-save').textContent = `${memberName}님 출석 저장하기`;
+    }
   });
 });

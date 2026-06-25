@@ -68,6 +68,7 @@ function handleRequest(e, method) {
       case 'getAttendanceSheet': result = getAttendanceSheet(payload.programId, payload.date); break;
       case 'submitCountOnly': result = submitCountOnly(payload.programId, payload.date, payload.count, user); break;
       case 'deleteAttendanceMember': result = deleteAttendanceMember(payload.programId, payload.date, payload.memberName); break;
+      case 'kioskCheckIn': result = kioskCheckIn(payload.programId, payload.date, payload.memberName); break;
       
       // QR 출석
       case 'getQRToken': result = getQRToken(payload.programId, payload.date); break;
@@ -456,6 +457,29 @@ function checkAttendance(programId, date, attendanceList, user) {
       att.출석여부, att.건수 || 0, '직원입력', inputterName, new Date()
     ]);
   });
+  
+  recalcStatsDirectly();
+  invalidateCache();
+  return true;
+}
+
+function kioskCheckIn(programId, date, memberName) {
+  const attData = getSheetDataAsJSON('출석_원장');
+  const exist = attData.find(a => a.사업ID === programId && formatDateStr(a.날짜) === date && a.이름 === memberName);
+  if (exist && exist.출석여부 === 'O') {
+    throw new Error('이미 출석 완료된 사용자입니다.');
+  }
+
+  const sheet = getSheet('출석_원장');
+  const programs = getSheetDataAsJSON('사업_마스터');
+  const prog = programs.find(p => p.사업ID === programId);
+  if (!prog) throw new Error('사업을 찾을 수 없습니다.');
+  
+  const attId = 'ATT_' + new Date().getTime() + Math.floor(Math.random()*1000);
+  sheet.appendRow([
+    attId, date, programId, prog.사업명, prog.팀명, memberName, 
+    'O', 0, '키오스크', memberName, new Date()
+  ]);
   
   recalcStatsDirectly();
   invalidateCache();

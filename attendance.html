@@ -43,6 +43,7 @@
           <div id="selected-program-info" class="mt-2 hidden">
             <span class="badge badge-primary" id="badge-type"></span>
             <button id="btn-show-qr" class="btn-secondary" style="margin-left: 10px;">QR코드 생성</button>
+            <button id="btn-enter-kiosk" class="btn-primary" style="margin-left: 10px;">이용인 셀프 출석</button>
           </div>
         </div>
 
@@ -93,6 +94,24 @@
       <p class="mb-2 text-sub">참여자에게 아래 QR코드를 보여주세요. (5분간 유효)</p>
       <div id="qrcode" style="display: flex; justify-content: center; margin: 20px 0;"></div>
       <a id="qr-link" href="#" target="_blank" class="btn-ghost" style="font-size: 14px;">새 창에서 열기</a>
+    </div>
+  </div>
+
+  <!-- Kiosk Mode Overlay -->
+  <div id="kiosk-overlay" class="hidden" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-color); z-index: 9999; overflow-y: auto; padding-bottom: 120px;">
+    <div style="padding: 20px; max-width: 800px; margin: 0 auto;">
+       <div class="flex justify-between items-center mb-3">
+         <h1 id="kiosk-title" style="font-size: 24px; font-weight: 700; color: var(--color-primary);">출석체크</h1>
+         <button id="btn-exit-kiosk" class="btn-ghost">닫기 (직원용)</button>
+       </div>
+       <div class="glass-card mb-3" style="text-align: center; padding: 20px;">
+         <p style="font-size: 18px; font-weight: 600; color: var(--color-text);">본인의 이름을 선택하고 하단의 <span style="color:var(--color-primary);">[저장하기]</span> 버튼을 눌러주세요.</p>
+       </div>
+       <div id="kiosk-grid" class="attendance-grid"></div>
+    </div>
+    
+    <div id="kiosk-bottom-bar" style="position: fixed; bottom: 0; left: 0; width: 100%; background: rgba(255,255,255,0.8); backdrop-filter: blur(10px); padding: 20px; box-shadow: 0 -4px 15px rgba(0,0,0,0.05); display: flex; justify-content: center; z-index: 10000;">
+       <button id="btn-kiosk-save" class="btn-primary" style="width: 100%; max-width: 400px; padding: 18px; font-size: 20px; font-weight: 700; border-radius: 30px; box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);" disabled>이름을 선택해주세요</button>
     </div>
   </div>
 
