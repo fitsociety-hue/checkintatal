@@ -127,10 +127,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       card.className = `att-card ${m.attended ? 'attended' : ''} ${isExpanded ? 'expanded' : ''}`;
       card.setAttribute('data-name', m.이름);
       
-      const badge = m.장애비장애구분 === '장애' ? '<span class="badge badge-warning" style="font-size:10px; margin-left:4px;">장애</span>' : '';
-      
       card.innerHTML = `
-        <div class="name-display">${m.이름}${badge}</div>
+        <div class="name-display">${m.이름}</div>
         <div class="expanded-content">
           <input type="text" class="form-input remark-input" data-name="${m.이름}" placeholder="비고 입력" value="${m.remark || ''}">
           <div class="att-card-actions">
