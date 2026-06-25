@@ -386,7 +386,9 @@ function getMembers(programId, status, programName) {
   if (programName) {
     const normSearch = String(programName).replace(/\s+/g, '');
     members = members.filter(m => {
-      const memberPrograms = String(m.사업명 || '').split(',').map(s => s.replace(/\s+/g, ''));
+      // 배열 split 방식 대신, 모든 텍스트를 붙여서 부분일치(includes) 검색으로 변경 
+      // (사용자가 쉼표 대신 줄바꿈, 빗금, '및' 등으로 사업명을 구분해 입력하는 경우 대응)
+      const memberPrograms = String(m.사업명 || '').replace(/\s+/g, '');
       return memberPrograms.includes(normSearch);
     });
   }
