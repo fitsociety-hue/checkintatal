@@ -46,8 +46,9 @@ const Auth = {
 
   requireAuth: function() {
     const token = localStorage.getItem('jwt_token');
-    if (!token) {
-      window.location.href = 'index.html';
+    const user = this.getUser();
+    if (!token || !user || !user.name) {
+      this.logout();
       return false;
     }
     return true;

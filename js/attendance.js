@@ -117,7 +117,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         </td>
         <td><input type="text" class="form-input remark-input" data-name="${m.이름}" style="padding: 6px;" placeholder="비고 입력" value="${m.remark || ''}"></td>
         <td>
-          <button class="btn-delete btn-error" data-name="${m.이름}" style="padding: 6px 12px; border-radius: 20px; border: none; background-color: #ff4d4f; color: white; cursor: pointer;">삭제</button>
+          <button class="btn-delete-member btn-error" data-name="${m.이름}" style="padding: 6px 12px; border-radius: 20px; border: none; background-color: #ff4d4f; color: white; cursor: pointer;">삭제</button>
         </td>
       `;
       tbody.appendChild(tr);
@@ -132,7 +132,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
     });
 
-    document.querySelectorAll('.btn-delete').forEach(btn => {
+    document.querySelectorAll('.btn-delete-member').forEach(btn => {
       btn.addEventListener('click', async (e) => {
         if (!confirm('해당 회원을 정말 삭제하시겠습니까? (즉시 서버에 반영됩니다)')) return;
         const memberName = e.target.getAttribute('data-name');

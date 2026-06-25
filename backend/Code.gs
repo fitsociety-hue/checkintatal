@@ -445,11 +445,13 @@ function checkAttendance(programId, date, attendanceList, user) {
   // 삭제 후 덮어쓰기를 위해 기존 해당일 데이터 삭제 (간단한 구현)
   deleteExistingAttendance(programId, date);
 
+  const inputterName = (user && user.name) ? user.name : '시스템';
+
   attendanceList.forEach(att => {
     const attId = 'ATT_' + new Date().getTime() + Math.floor(Math.random()*1000);
     sheet.appendRow([
       attId, date, programId, prog.사업명, prog.팀명, att.이름, 
-      att.출석여부, att.건수 || 0, '직원입력', user.name, new Date()
+      att.출석여부, att.건수 || 0, '직원입력', inputterName, new Date()
     ]);
   });
   
@@ -466,10 +468,12 @@ function submitCountOnly(programId, date, count, user) {
 
   deleteExistingAttendance(programId, date);
 
+  const inputterName = (user && user.name) ? user.name : '시스템';
+
   const attId = 'ATT_' + new Date().getTime();
   sheet.appendRow([
     attId, date, programId, prog.사업명, prog.팀명, '건수입력용_무명', 
-    'O', count, '직원입력', user.name, new Date()
+    'O', count, '직원입력', inputterName, new Date()
   ]);
   
   recalcStatsDirectly();
