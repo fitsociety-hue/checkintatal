@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>출석체크 - 강동어울림복지관</title>
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/style.css?v=2">
   <script src="https://cdn.rawgit.com/davidshimjs/qrcodejs/gh-pages/qrcode.min.js"></script>
 </head>
 <body>
@@ -40,10 +40,9 @@
             <input type="date" id="attendance-date" class="form-input" required>
           </div>
           
-          <div id="selected-program-info" class="mt-2 hidden">
-            <span class="badge badge-primary" id="badge-type"></span>
-            <button id="btn-show-qr" class="btn-secondary" style="margin-left: 10px;">QR코드 생성</button>
-            <button id="btn-enter-kiosk" class="btn-primary" style="margin-left: 10px;">이용인 셀프 출석</button>
+          <div id="selected-program-info" class="mt-3 hidden flex items-center gap-1">
+            <button id="btn-show-qr" class="btn-secondary">QR코드 생성</button>
+            <button id="btn-enter-kiosk" class="btn-primary">이용인 셀프 출석</button>
           </div>
         </div>
 
@@ -97,21 +96,21 @@
     </div>
   </div>
 
-  <!-- Kiosk Mode Overlay -->
-  <div id="kiosk-overlay" class="hidden" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-color); z-index: 9999; overflow-y: auto; padding-bottom: 120px;">
-    <div style="padding: 20px; max-width: 800px; margin: 0 auto;">
+  <!-- Kiosk Mode Page -->
+  <div id="kiosk-overlay" class="hidden" style="min-height: 100vh; padding: 20px; padding-bottom: 120px; background: transparent;">
+    <div style="max-width: 900px; margin: 0 auto; padding-top: 20px;">
        <div class="flex justify-between items-center mb-3">
-         <h1 id="kiosk-title" style="font-size: 24px; font-weight: 700; color: var(--color-primary);">출석체크</h1>
-         <button id="btn-exit-kiosk" class="btn-ghost">닫기 (직원용)</button>
+         <h1 id="kiosk-title" style="font-size: 28px; font-weight: 700; color: var(--color-primary);">출석체크</h1>
+         <button id="btn-exit-kiosk" class="btn-secondary" style="border-radius: 20px;">← 메인 페이지로 돌아가기</button>
        </div>
-       <div class="glass-card mb-3" style="text-align: center; padding: 20px;">
-         <p style="font-size: 18px; font-weight: 600; color: var(--color-text);">본인의 이름을 선택하고 하단의 <span style="color:var(--color-primary);">[저장하기]</span> 버튼을 눌러주세요.</p>
+       <div class="glass-card mb-3" style="text-align: center; padding: 30px 20px; border-radius: 20px;">
+         <p style="font-size: 22px; font-weight: 600; color: var(--color-text);">본인의 이름을 선택하고 하단의 <span style="color:var(--color-primary);">[출석 저장하기]</span> 버튼을 눌러주세요.</p>
        </div>
-       <div id="kiosk-grid" class="attendance-grid"></div>
+       <div id="kiosk-grid" class="kiosk-grid-layout"></div>
     </div>
     
-    <div id="kiosk-bottom-bar" style="position: fixed; bottom: 0; left: 0; width: 100%; background: rgba(255,255,255,0.8); backdrop-filter: blur(10px); padding: 20px; box-shadow: 0 -4px 15px rgba(0,0,0,0.05); display: flex; justify-content: center; z-index: 10000;">
-       <button id="btn-kiosk-save" class="btn-primary" style="width: 100%; max-width: 400px; padding: 18px; font-size: 20px; font-weight: 700; border-radius: 30px; box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);" disabled>이름을 선택해주세요</button>
+    <div id="kiosk-bottom-bar" style="position: fixed; bottom: 0; left: 0; width: 100%; background: rgba(255,255,255,0.9); backdrop-filter: blur(10px); padding: 20px; box-shadow: 0 -10px 25px rgba(0,0,0,0.05); display: flex; justify-content: center; z-index: 10000;">
+       <button id="btn-kiosk-save" class="btn-primary" style="width: 100%; max-width: 400px; padding: 20px; font-size: 22px; font-weight: 700; border-radius: 40px; box-shadow: 0 8px 20px rgba(59, 130, 246, 0.4);" disabled>이름을 선택해주세요</button>
     </div>
   </div>
 
@@ -120,6 +119,6 @@
   <script src="js/api.js?v=3"></script>
   <script src="js/auth.js?v=3"></script>
   <script src="js/programs.js?v=3"></script>
-  <script src="js/attendance.js?v=3"></script>
+  <script src="js/attendance.js?v=4"></script>
 </body>
 </html>
