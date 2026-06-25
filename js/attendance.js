@@ -50,12 +50,22 @@ document.addEventListener('DOMContentLoaded', async () => {
     } else {
       membersDiv.classList.remove('hidden');
       
-      // Fetch members for the program (사업명 기반 자동 필터링) - 최신 명단을 위해 forceRefresh 옵션 추가
+      // Fetch members for the program
+      // 백엔드(GAS) 코드의 필터링 로직이 구버전으로 배포되어 있을 가능성을 대비하여,
+      // 프론트엔드에서 모든 회원을 가져온 뒤 사업명으로 직접 부분일치(includes) 필터링합니다.
       try {
-        const res = await API.fetchGAS('getMembers', { programId: program.사업ID, programName: program.사업명, forceRefresh: true });
-        currentMembers = res.data || [];
+        const res = await API.fetchGAS('getMembers', { programId: 'all', forceRefresh: true });
+        const allMembers = res.data || [];
         
-        // Remove the fallback so it strictly shows matched members.
+        if (program.사업명) {
+          const normSearch = String(program.사업명).replace(/\s+/g, '');
+          currentMembers = allMembers.filter(m => {
+            const memberPrograms = String(m.사업명 || '').replace(/\s+/g, '');
+            return memberPrograms.includes(normSearch);
+          });
+        } else {
+          currentMembers = allMembers;
+        }
         
         // Also fetch today's attendance to pre-fill
         const attRes = await API.fetchGAS('getAttendanceSheet', { programId: program.사업ID, date: dateStr, forceRefresh: true });
