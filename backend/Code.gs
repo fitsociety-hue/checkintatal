@@ -56,12 +56,14 @@ function handleRequest(e, method) {
       case 'addMember': result = addMember(payload.data); break;
       case 'updateMember': result = updateMember(payload.name, payload.data); break;
       case 'importMembersCSV': result = importMembersCSV(payload.csvData); break;
+      case 'deleteMemberRecord': result = deleteMemberRecord(payload.name, payload.pin, user); break;
       
       // 사업 관리
       case 'getPrograms': result = getPrograms(payload.teamName, payload.status); break;
       case 'addProgram': result = addProgram(payload.data); break;
       case 'updateProgram': result = updateProgram(payload.programId, payload.data); break;
       case 'importProgramsCSV': result = importProgramsCSV(payload.csvData); break;
+      case 'deleteProgramRecord': result = deleteProgramRecord(payload.programId, payload.pin, user); break;
       
       // 출석 관리
       case 'checkAttendance': result = checkAttendance(payload.programId, payload.date, payload.attendanceList, user); break;
@@ -83,6 +85,7 @@ function handleRequest(e, method) {
       
       // 시스템 관리
       case 'setupAutoSyncTrigger': result = setupAutoSyncTrigger(); break;
+      case 'setDeletePin': result = setDeletePin(payload.pin, user); break;
       case 'updateAdminPassword':
         if (!user || user.role !== '관리자') throw new Error('권한이 없습니다.');
         PropertiesService.getScriptProperties().setProperty('ADMIN_PASSWORD', payload.newPassword);
@@ -130,7 +133,7 @@ function getSheet(sheetName) {
 
 function getHeadersForSheet(sheetName) {
   switch (sheetName) {
-    case '직원_마스터': return ['직원ID', '이름', '팀명', '직위', '비밀번호', '상태', '담당사업IDs'];
+    case '직원_마스터': return ['직원ID', '이름', '팀명', '직위', '비밀번호', '상태', '담당사업IDs', '삭제비밀번호'];
     case '사업_마스터': return ['팀명', '사업분류', '세부사업분류', '사업명', '실적유형', '상태', '목표_실인원', '목표_건수', '목표_연인원', '담당자', '사업ID'];
     case '회원_마스터': return ['이름', '시작일', '상태', '장애비장애구분', '구분', '사업명', '메모'];
     case '출석_원장': return ['출석ID', '날짜', '사업ID', '사업명', '팀명', '이름', '출석여부', '건수', '입력방식', '입력자', '입력시각', '실인원', '연인원', '세부_직원', '세부_장애인', '세부_비장애인', '비고'];
@@ -256,7 +259,7 @@ function login(team, name, password) {
       const adminPw = PropertiesService.getScriptProperties().getProperty('ADMIN_PASSWORD');
       const inputPw = String(password || '').trim();
       if (inputPw === '1107' || inputPw === 'admin' || (adminPw && inputPw === String(adminPw).trim())) {
-        const mockUser = { staffId: 'ADMIN', name: '최고관리자', team: '관리자', role: '관리자' };
+        const mockUser = { staffId: 'ADMIN', name: '최고관리자', team: '관리자', role: '관리자', hasDeletePin: true };
         return { token: createToken(mockUser), user: mockUser };
       }
     }
@@ -268,7 +271,8 @@ function login(team, name, password) {
     name: user.이름,
     team: user.팀명,
     role: user.직위, // 관리자, 팀장, 팀원
-    담당사업IDs: user.담당사업IDs
+    담당사업IDs: user.담당사업IDs,
+    hasDeletePin: !!user.삭제비밀번호
   };
   
   return { token: createToken(payload), user: payload };
@@ -374,6 +378,32 @@ function importProgramsCSV(csvData) {
   return true;
 }
 
+function deleteProgramRecord(programId, pin, user) {
+  verifyDeletePin(pin, user);
+  
+  const sheet = getSheet('사업_마스터');
+  const vals = sheet.getDataRange().getValues();
+  if (vals.length <= 1) return true;
+  
+  const newVals = [vals[0]];
+  let deleted = false;
+  
+  for (let i = 1; i < vals.length; i++) {
+    if (vals[i][10] === programId) {
+      deleted = true;
+      continue;
+    }
+    newVals.push(vals[i]);
+  }
+  
+  if (deleted) {
+    sheet.clearContents();
+    sheet.getRange(1, 1, newVals.length, newVals[0].length).setValues(newVals);
+    invalidateCache();
+  }
+  return true;
+}
+
 // ==============================================================================
 // 회원 관리
 // ==============================================================================
@@ -428,6 +458,32 @@ function importMembersCSV(csvData) {
     ]);
   });
   invalidateCache();
+  return true;
+}
+
+function deleteMemberRecord(name, pin, user) {
+  verifyDeletePin(pin, user);
+  
+  const sheet = getSheet('회원_마스터');
+  const vals = sheet.getDataRange().getValues();
+  if (vals.length <= 1) return true;
+  
+  const newVals = [vals[0]];
+  let deleted = false;
+  
+  for (let i = 1; i < vals.length; i++) {
+    if (vals[i][0] === name) {
+      deleted = true;
+      continue;
+    }
+    newVals.push(vals[i]);
+  }
+  
+  if (deleted) {
+    sheet.clearContents();
+    sheet.getRange(1, 1, newVals.length, newVals[0].length).setValues(newVals);
+    invalidateCache();
+  }
   return true;
 }
 
@@ -587,6 +643,53 @@ function getQRToken(programId, date) {
   const cache = CacheService.getScriptCache();
   cache.put('QR_' + token, JSON.stringify({ programId, date }), 300); // 5분 유효
   return { token };
+}
+
+function invalidateCache() {
+  const cache = CacheService.getScriptCache();
+  const newVersion = new Date().getTime().toString();
+  cache.put('CACHE_VERSION', newVersion, 21600);
+}
+
+function setDeletePin(pin, user) {
+  if (user.staffId === 'ADMIN') return true; 
+  
+  const sheet = getSheet('직원_마스터');
+  const vals = sheet.getDataRange().getValues();
+  const hashedPin = hashPassword(pin);
+  
+  for (let i = 1; i < vals.length; i++) {
+    if (vals[i][0] === user.staffId) {
+      sheet.getRange(i + 1, 8).setValue(hashedPin);
+      invalidateCache();
+      return true;
+    }
+  }
+  throw new Error('사용자 정보를 찾을 수 없습니다.');
+}
+
+function verifyDeletePin(pin, user) {
+  if (!user || (user.role !== '팀장' && user.role !== '관리자')) {
+    throw new Error('삭제 권한이 없습니다.');
+  }
+  
+  if (user.staffId === 'ADMIN') {
+    const adminPw = PropertiesService.getScriptProperties().getProperty('ADMIN_PASSWORD') || '1107';
+    if (pin !== adminPw && pin !== 'admin' && pin !== '1107') {
+      throw new Error('비밀번호가 일치하지 않습니다.');
+    }
+    return true;
+  }
+  
+  const staffData = getSheetDataAsJSON('직원_마스터', true);
+  const staff = staffData.find(s => s.직원ID === user.staffId);
+  if (!staff) throw new Error('사용자 정보를 찾을 수 없습니다.');
+  if (!staff.삭제비밀번호) throw new Error('삭제 비밀번호가 설정되어 있지 않습니다.');
+  
+  if (staff.삭제비밀번호 !== hashPassword(pin) && staff.비밀번호 !== hashPassword(pin)) {
+    throw new Error('비밀번호가 일치하지 않습니다.');
+  }
+  return true;
 }
 
 function verifyQRTokenAction(token, programId, date) {
@@ -1153,6 +1256,51 @@ function getCacheChunked(cacheKey) {
   } catch (e) {
     return null;
   }
+}
+
+// ==============================================================================
+// 삭제 비밀번호 기능
+// ==============================================================================
+
+function setDeletePin(pin, user) {
+  if (user.staffId === 'ADMIN') return true; 
+  
+  const sheet = getSheet('직원_마스터');
+  const vals = sheet.getDataRange().getValues();
+  const hashedPin = hashPassword(pin);
+  
+  for (let i = 1; i < vals.length; i++) {
+    if (vals[i][0] === user.staffId) {
+      sheet.getRange(i + 1, 8).setValue(hashedPin);
+      invalidateCache();
+      return true;
+    }
+  }
+  throw new Error('사용자 정보를 찾을 수 없습니다.');
+}
+
+function verifyDeletePin(pin, user) {
+  if (!user || (user.role !== '팀장' && user.role !== '관리자')) {
+    throw new Error('삭제 권한이 없습니다.');
+  }
+  
+  if (user.staffId === 'ADMIN') {
+    const adminPw = PropertiesService.getScriptProperties().getProperty('ADMIN_PASSWORD') || '1107';
+    if (pin !== adminPw && pin !== 'admin' && pin !== '1107') {
+      throw new Error('비밀번호가 일치하지 않습니다.');
+    }
+    return true;
+  }
+  
+  const staffData = getSheetDataAsJSON('직원_마스터', true);
+  const staff = staffData.find(s => s.직원ID === user.staffId);
+  if (!staff) throw new Error('사용자 정보를 찾을 수 없습니다.');
+  if (!staff.삭제비밀번호) throw new Error('삭제 비밀번호가 설정되어 있지 않습니다.');
+  
+  if (staff.삭제비밀번호 !== hashPassword(pin) && staff.비밀번호 !== hashPassword(pin)) {
+    throw new Error('비밀번호가 일치하지 않습니다.');
+  }
+  return true;
 }
 
 // ==============================================================================

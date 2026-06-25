@@ -131,6 +131,7 @@ function renderTable() {
       <td data-label="메모">${m.메모 || ''}</td>
       <td data-label="관리">
         <button class="btn-ghost" onclick="editMember('${m.이름}')">수정</button>
+        ${(Auth.hasRole('팀장') || Auth.hasRole('관리자')) ? `<button class="btn-ghost" style="color:var(--color-error);" onclick="requestDeleteMember('${m.이름}')">삭제</button>` : ''}
       </td>
     `;
     tbody.appendChild(tr);
@@ -235,4 +236,75 @@ window.downloadMembersCSV = function() {
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
   Utils.showToast('CSV 파일이 다운로드되었습니다.', 'success');
+}
+
+// ==========================================
+// Delete Logic
+// ==========================================
+let currentDeleteTarget = null;
+let currentDeleteType = null; // 'member'
+
+window.requestDeleteMember = function(name) {
+  currentDeleteTarget = name;
+  currentDeleteType = 'member';
+  const user = Auth.getUser();
+  
+  if (!user.hasDeletePin) {
+    document.getElementById('new-pin-input').value = '';
+    document.getElementById('new-pin-confirm').value = '';
+    document.getElementById('pin-setup-modal').classList.add('active');
+  } else {
+    document.getElementById('delete-target-msg').textContent = `'${name}' 회원을 삭제하려면 4자리 삭제 비밀번호를 입력하세요.`;
+    document.getElementById('delete-pin-input').value = '';
+    document.getElementById('delete-confirm-modal').classList.add('active');
+  }
+}
+
+window.closePinSetupModal = function() {
+  document.getElementById('pin-setup-modal').classList.remove('active');
+}
+
+window.submitPinSetup = async function() {
+  const pin1 = document.getElementById('new-pin-input').value;
+  const pin2 = document.getElementById('new-pin-confirm').value;
+  
+  if (!pin1 || pin1.length !== 4) return Utils.showToast('4자리 숫자를 입력해주세요.', 'error');
+  if (pin1 !== pin2) return Utils.showToast('비밀번호가 일치하지 않습니다.', 'error');
+  
+  try {
+    await API.fetchGAS('setDeletePin', { pin: pin1 });
+    Auth.updateUserInfo({ hasDeletePin: true });
+    Utils.showToast('삭제 비밀번호가 설정되었습니다. 이제 삭제할 수 있습니다.', 'success');
+    closePinSetupModal();
+    // 바로 삭제 모달 띄우기
+    if (currentDeleteTarget) {
+      if (currentDeleteType === 'member') requestDeleteMember(currentDeleteTarget);
+    }
+  } catch (e) {
+    Utils.showToast(e.message || '오류가 발생했습니다.', 'error');
+  }
+}
+
+window.closeDeleteConfirmModal = function() {
+  document.getElementById('delete-confirm-modal').classList.remove('active');
+  currentDeleteTarget = null;
+}
+
+window.submitDelete = async function() {
+  if (!currentDeleteTarget) return;
+  const pin = document.getElementById('delete-pin-input').value;
+  if (!pin || pin.length !== 4) return Utils.showToast('4자리 숫자를 입력해주세요.', 'error');
+  
+  if (!confirm('정말 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) return;
+  
+  try {
+    if (currentDeleteType === 'member') {
+      await API.fetchGAS('deleteMemberRecord', { name: currentDeleteTarget, pin: pin });
+      Utils.showToast('회원이 삭제되었습니다.', 'success');
+      closeDeleteConfirmModal();
+      await loadMembers();
+    }
+  } catch (e) {
+    Utils.showToast(e.message || '비밀번호가 틀렸거나 오류가 발생했습니다.', 'error');
+  }
 }

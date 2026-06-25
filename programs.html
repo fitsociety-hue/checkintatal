@@ -124,6 +124,46 @@
     </div>
   </div>
 
+  <!-- PIN Setup Modal -->
+  <div class="modal-overlay" id="pin-setup-modal">
+    <div class="glass-card modal-glass">
+      <div class="modal-header">
+        <h3>삭제 비밀번호 설정</h3>
+        <button class="btn-ghost" onclick="closePinSetupModal()">X</button>
+      </div>
+      <div class="form-group mt-2">
+        <label class="form-label">삭제 시 사용할 4자리 숫자 비밀번호를 설정해주세요.</label>
+        <input type="password" id="new-pin-input" class="form-input" maxlength="4" placeholder="숫자 4자리" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+      </div>
+      <div class="form-group mt-2">
+        <label class="form-label">비밀번호 확인</label>
+        <input type="password" id="new-pin-confirm" class="form-input" maxlength="4" placeholder="숫자 4자리 확인" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+      </div>
+      <div class="flex justify-between mt-3">
+        <button class="btn-secondary" onclick="closePinSetupModal()">취소</button>
+        <button class="btn-primary" onclick="submitPinSetup()">설정</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Confirm Modal -->
+  <div class="modal-overlay" id="delete-confirm-modal">
+    <div class="glass-card modal-glass">
+      <div class="modal-header">
+        <h3>삭제 확인</h3>
+        <button class="btn-ghost" onclick="closeDeleteConfirmModal()">X</button>
+      </div>
+      <p class="text-sub mt-2 mb-2" id="delete-target-msg">데이터를 삭제하려면 4자리 삭제 비밀번호를 입력하세요.</p>
+      <div class="form-group">
+        <input type="password" id="delete-pin-input" class="form-input" maxlength="4" placeholder="숫자 4자리" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+      </div>
+      <div class="flex justify-between mt-3">
+        <button class="btn-secondary" onclick="closeDeleteConfirmModal()">취소</button>
+        <button class="btn-primary" style="background-color: var(--color-error);" onclick="submitDelete()">삭제</button>
+      </div>
+    </div>
+  </div>
+
   <script src="js/config.js"></script>
   <script src="js/utils.js"></script>
   <script src="js/api.js"></script>

@@ -44,6 +44,14 @@ const Auth = {
     }
   },
 
+  updateUserInfo: function(updates) {
+    const user = this.getUser();
+    if (user) {
+      const updatedUser = { ...user, ...updates };
+      localStorage.setItem('user_info', JSON.stringify(updatedUser));
+    }
+  },
+
   requireAuth: function() {
     const token = localStorage.getItem('jwt_token');
     const user = this.getUser();
