@@ -400,22 +400,15 @@ function deleteProgramRecord(programId, pin, user) {
   const vals = sheet.getDataRange().getValues();
   if (vals.length <= 1) return true;
   
-  const newVals = [vals[0]];
   let deleted = false;
-  
-  for (let i = 1; i < vals.length; i++) {
+  for (let i = vals.length - 1; i >= 1; i--) {
     if (vals[i][10] === programId) {
+      sheet.deleteRow(i + 1);
       deleted = true;
-      continue;
     }
-    newVals.push(vals[i]);
   }
   
-  if (deleted) {
-    sheet.clearContents();
-    sheet.getRange(1, 1, newVals.length, newVals[0].length).setValues(newVals);
-    invalidateCache();
-  }
+  if (deleted) invalidateCache();
   return true;
 }
 
@@ -483,22 +476,15 @@ function deleteMemberRecord(name, pin, user) {
   const vals = sheet.getDataRange().getValues();
   if (vals.length <= 1) return true;
   
-  const newVals = [vals[0]];
   let deleted = false;
-  
-  for (let i = 1; i < vals.length; i++) {
+  for (let i = vals.length - 1; i >= 1; i--) {
     if (vals[i][0] === name) {
+      sheet.deleteRow(i + 1);
       deleted = true;
-      continue;
     }
-    newVals.push(vals[i]);
   }
   
-  if (deleted) {
-    sheet.clearContents();
-    sheet.getRange(1, 1, newVals.length, newVals[0].length).setValues(newVals);
-    invalidateCache();
-  }
+  if (deleted) invalidateCache();
   return true;
 }
 
@@ -609,18 +595,16 @@ function deleteExistingAttendance(programId, date) {
   const sheet = getSheet('출석_원장');
   const vals = sheet.getDataRange().getValues();
   if (vals.length <= 1) return;
-  const newVals = [vals[0]]; // keep header
-  for (let i = 1; i < vals.length; i++) {
-    if (!(vals[i][2] === programId && formatDateStr(vals[i][1]) === date)) {
-      newVals.push(vals[i]);
+  
+  let deleted = false;
+  for (let i = vals.length - 1; i >= 1; i--) {
+    if (vals[i][2] === programId && formatDateStr(vals[i][1]) === date) {
+      sheet.deleteRow(i + 1);
+      deleted = true;
     }
   }
-  sheet.clearContents();
-  if (newVals.length > 0) {
-    sheet.getRange(1, 1, newVals.length, newVals[0].length).setValues(newVals);
-  }
   
-  invalidateCache();
+  if (deleted) invalidateCache();
   return true;
 }
 
@@ -629,20 +613,15 @@ function deleteAttendanceMember(programId, date, memberName) {
   const vals = sheet.getDataRange().getValues();
   if (vals.length <= 1) return true;
   
-  const newVals = [vals[0]]; // header
   let deleted = false;
-  
-  for (let i = 1; i < vals.length; i++) {
+  for (let i = vals.length - 1; i >= 1; i--) {
     if (vals[i][2] === programId && formatDateStr(vals[i][1]) === date && vals[i][5] === memberName) {
+      sheet.deleteRow(i + 1);
       deleted = true;
-      continue;
     }
-    newVals.push(vals[i]);
   }
   
   if (deleted) {
-    sheet.clearContents();
-    sheet.getRange(1, 1, newVals.length, newVals[0].length).setValues(newVals);
     recalcStatsDirectly();
     invalidateCache();
   }
