@@ -24,12 +24,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   ProgramsLogic.renderProgramDropdowns(programs, 'dropdowns-container', async (selected) => {
     currentProgram = selected;
     const infoDiv = document.getElementById('selected-program-info');
-    const badge = document.getElementById('badge-type');
     const attSection = document.getElementById('attendance-section');
     
     if (selected) {
       infoDiv.classList.remove('hidden');
-      badge.textContent = selected.실적유형;
       attSection.classList.remove('hidden');
       await renderAttendanceSection(selected);
     } else {
