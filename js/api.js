@@ -70,7 +70,7 @@ const API = {
     const options = {
       method: method,
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
+        'Content-Type': method === 'POST' ? 'text/plain;charset=utf-8' : 'application/x-www-form-urlencoded',
       }
     };
     
@@ -79,7 +79,7 @@ const API = {
     }
 
     if (method === 'POST') {
-      options.body = new URLSearchParams({ data: JSON.stringify(payload) });
+      options.body = JSON.stringify(payload);
     }
 
     let url = CONFIG.GAS_URL;
