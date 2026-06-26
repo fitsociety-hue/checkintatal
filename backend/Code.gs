@@ -837,11 +837,23 @@ function calculateStatsCore(progs, targetYear, targetMonth, isAllMonths, attData
   let totalProgRateSum = 0;
   let activeProgCount = 0;
 
+  // O(N) 그룹핑으로 성능 최적화
+  const cumAttByProg = {};
+  cumulativeAtt.forEach(a => {
+    if (!cumAttByProg[a.사업ID]) cumAttByProg[a.사업ID] = [];
+    cumAttByProg[a.사업ID].push(a);
+  });
+  const monthAttByProg = {};
+  monthAtt.forEach(a => {
+    if (!monthAttByProg[a.사업ID]) monthAttByProg[a.사업ID] = [];
+    monthAttByProg[a.사업ID].push(a);
+  });
+
   const programStats = progs.map(p => {
     const isMemberType = (p.실적유형 !== '건수' && p.실적유형 !== '건수만' && p.실적유형 !== '불특정 인원(실인원, 건수, 연인원)');
     const isUnspecifiedType = (p.실적유형 === '불특정 인원(실인원, 건수, 연인원)');
     
-    const pCumAtt = cumulativeAtt.filter(a => a.사업ID === p.사업ID);
+    const pCumAtt = cumAttByProg[p.사업ID] || [];
     const pNames = new Set();
     let pCumReal = 0;
     
@@ -850,7 +862,7 @@ function calculateStatsCore(progs, targetYear, targetMonth, isAllMonths, attData
       if (isUnspecifiedType) pCumReal += Number(a.실인원) || 0;
     });
     
-    const pMonthAtt = monthAtt.filter(a => a.사업ID === p.사업ID);
+    const pMonthAtt = monthAttByProg[p.사업ID] || [];
     let pAccum = 0;
     let pCount = 0;
     
@@ -1000,10 +1012,24 @@ function getAllStats(year, month) {
   let totalAllProgRateSum = 0;
   let activeAllProgCount = 0;
 
+  // O(N) 그룹핑
+  const cumAttByProg = {};
+  cumulativeAtt.forEach(a => {
+    if (!cumAttByProg[a.사업ID]) cumAttByProg[a.사업ID] = [];
+    cumAttByProg[a.사업ID].push(a);
+  });
+  const monthAttByProg = {};
+  monthAtt.forEach(a => {
+    if (!monthAttByProg[a.사업ID]) monthAttByProg[a.사업ID] = [];
+    monthAttByProg[a.사업ID].push(a);
+  });
+
   const teamStats = teams.map(team => {
     const teamProgs = allProgs.filter(p => p.팀명 === team);
-    const teamProgIds = teamProgs.map(p => p.사업ID);
-    const teamAtt = monthAtt.filter(a => teamProgIds.includes(a.사업ID));
+    const teamAtt = [];
+    teamProgs.forEach(p => {
+      if (monthAttByProg[p.사업ID]) teamAtt.push(...monthAttByProg[p.사업ID]);
+    });
 
     let tAccum = 0;
     let tCount = 0;
@@ -1055,7 +1081,7 @@ function getAllStats(year, month) {
     let teamProgCount = 0;
 
     teamProgs.forEach(p => {
-      const progAtt = teamAtt.filter(a => a.사업ID === p.사업ID);
+      const progAtt = monthAttByProg[p.사업ID] || [];
       let pCount = 0, pAccum = 0;
       
       const isMemberType = (p.실적유형 !== '건수' && p.실적유형 !== '건수만');
@@ -1120,7 +1146,7 @@ function getAllStats(year, month) {
     const isMemberType = (p.실적유형 !== '건수' && p.실적유형 !== '건수만');
     
     // 이 사업의 누적 실인원
-    const pCumAtt = cumulativeAtt.filter(a => a.사업ID === p.사업ID);
+    const pCumAtt = cumAttByProg[p.사업ID] || [];
     const pNames = new Set();
     pCumAtt.forEach(a => {
       if (isMemberType && a.출석여부 === 'O' && a.이름 !== '건수입력용_무명') {
@@ -1129,7 +1155,7 @@ function getAllStats(year, month) {
     });
 
     // 이 사업의 선택월 연인원 및 건수
-    const progAtt = monthAtt.filter(a => a.사업ID === p.사업ID);
+    const progAtt = monthAttByProg[p.사업ID] || [];
     let pCount = 0, pAccum = 0;
     
     if (isMemberType) {

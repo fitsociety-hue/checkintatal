@@ -134,6 +134,7 @@ function renderTable() {
   const endIdx = Math.min(startIdx + itemsPerPage, total);
   const pageData = filteredMembers.slice(startIdx, endIdx);
 
+  const fragment = document.createDocumentFragment();
   pageData.forEach(m => {
     const tr = document.createElement('tr');
     tr.innerHTML = `
@@ -150,8 +151,9 @@ function renderTable() {
         ${(Auth.hasRole('팀장') || Auth.hasRole('관리자')) ? `<button class="btn-ghost" style="color:var(--color-error);" onclick="requestDeleteMember('${m.이름}')">삭제</button>` : ''}
       </td>
     `;
-    tbody.appendChild(tr);
+    fragment.appendChild(tr);
   });
+  tbody.appendChild(fragment);
 
   const totalPages = Math.ceil(total / itemsPerPage);
   document.getElementById('page-info').textContent = `총 ${total}명 (페이지 ${currentPage}/${totalPages})`;

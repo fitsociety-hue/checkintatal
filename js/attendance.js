@@ -142,6 +142,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
 
+    const fragment = document.createDocumentFragment();
     filtered.forEach((m) => {
       const isExpanded = (expandedMemberName === m.이름);
       const card = document.createElement('div');
@@ -158,8 +159,9 @@ document.addEventListener('DOMContentLoaded', async () => {
           </div>
         </div>
       `;
-      grid.appendChild(card);
+      fragment.appendChild(card);
     });
+    grid.appendChild(fragment);
 
     // Event Delegation for Grid Interactions
     grid.querySelectorAll('.att-card').forEach(card => {
@@ -373,6 +375,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       saveBtn.textContent = `이름을 선택해주세요`;
     }
 
+    const fragment = document.createDocumentFragment();
     currentMembers.forEach(m => {
       const card = document.createElement('div');
       const isSelected = (selectedKioskMember === m.이름);
@@ -393,8 +396,9 @@ document.addEventListener('DOMContentLoaded', async () => {
           renderKioskGrid();
         });
       }
-      grid.appendChild(card);
+      fragment.appendChild(card);
     });
+    grid.appendChild(fragment);
   }
 
   document.getElementById('btn-kiosk-save').addEventListener('click', async () => {
