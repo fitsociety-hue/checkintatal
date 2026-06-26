@@ -49,9 +49,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 async function loadMembers(forceRefresh = false) {
   try {
-    const res = await API.fetchGAS('getMembers', { status: 'all', forceRefresh });
-    let fetchedMembers = res.data || [];
-    
     const user = Auth.getUser();
     let teamName = undefined;
     if (user && user.role !== '관리자') {
