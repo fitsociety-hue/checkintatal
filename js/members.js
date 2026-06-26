@@ -53,27 +53,23 @@ async function loadMembers(forceRefresh = false) {
     let fetchedMembers = res.data || [];
     
     const user = Auth.getUser();
+    let teamName = undefined;
     if (user && user.role !== '관리자') {
-      if (user.role === '팀장') {
-        const progsRes = await API.fetchGAS('getPrograms', { teamName: user.team });
-        let teamProgs = progsRes.data || [];
-        if (user.team) {
-          teamProgs = teamProgs.filter(p => p.팀명 === user.team);
-        }
-        const teamProgNames = teamProgs.map(p => p.사업명.replace(/\s+/g, ''));
-        fetchedMembers = fetchedMembers.filter(m => {
-          const memberProgs = String(m.사업명 || '').split(',').map(s => s.replace(/\s+/g, ''));
-          return memberProgs.some(mp => teamProgNames.includes(mp));
-        });
-      } else {
-        const progsRes = await API.fetchGAS('getPersonalStats', { staffId: user.staffId });
-        const assignedProgs = progsRes.data.programs || [];
-        const assignedProgNames = assignedProgs.map(p => p.사업명.replace(/\s+/g, ''));
-        fetchedMembers = fetchedMembers.filter(m => {
-          const memberProgs = String(m.사업명 || '').split(',').map(s => s.replace(/\s+/g, ''));
-          return memberProgs.some(mp => assignedProgNames.includes(mp));
-        });
-      }
+      teamName = user.team; // Pass teamName to backend to filter members at the DB level for performance & security
+    }
+
+    const res = await API.fetchGAS('getMembers', { status: 'all', forceRefresh, teamName });
+    let fetchedMembers = res.data || [];
+    
+    if (user && user.role !== '관리자' && user.role !== '팀장') {
+      // 팀원은 자신이 담당하는 사업명과 관련된 회원만 표시
+      const progsRes = await API.fetchGAS('getPersonalStats', { staffId: user.staffId });
+      const assignedProgs = progsRes.data.programs || [];
+      const assignedProgNames = assignedProgs.map(p => p.사업명.replace(/\s+/g, ''));
+      fetchedMembers = fetchedMembers.filter(m => {
+        const memberProgs = String(m.사업명 || '').split(',').map(s => s.replace(/\s+/g, ''));
+        return memberProgs.some(mp => assignedProgNames.includes(mp));
+      });
     }
 
     allMembers = fetchedMembers;
@@ -124,9 +120,10 @@ function renderTable() {
     tr.innerHTML = `
       <td data-label="이름">${m.이름}</td>
       <td data-label="시작일">${Utils.formatDate(m.시작일)}</td>
-      <td data-label="상태"><span class="badge ${m.상태 === '활성' ? 'badge-success' : (m.상태 === '보류' ? 'badge-warning' : 'badge-error')}">${m.상태}</span></td>
       <td data-label="장애여부"><span class="badge ${m.장애비장애구분 === '장애' ? 'badge-warning' : 'badge-neutral'}">${m.장애비장애구분}</span></td>
       <td data-label="구분"><span class="badge ${m.구분 === '그룹' ? 'badge-primary' : 'badge-neutral'}">${m.구분 || '개별'}</span></td>
+      <td data-label="상태"><span class="badge ${m.상태 === '활성' ? 'badge-success' : (m.상태 === '보류' ? 'badge-warning' : 'badge-error')}">${m.상태}</span></td>
+      <td data-label="팀명">${m.팀명 || ''}</td>
       <td data-label="사업명">${m.사업명 || ''}</td>
       <td data-label="메모">${m.메모 || ''}</td>
       <td data-label="관리">
@@ -147,6 +144,12 @@ window.openMemberModal = function() {
   document.getElementById('original-name').value = '';
   document.getElementById('mem-start').value = Utils.formatDate(new Date());
   document.getElementById('mem-class').value = '개별';
+  
+  const user = Auth.getUser();
+  if (user && user.team && user.role !== '관리자') {
+    document.getElementById('mem-team').value = user.team;
+  }
+  
   document.getElementById('member-modal').classList.add('active');
 }
 
@@ -165,6 +168,7 @@ window.editMember = function(name) {
   document.getElementById('mem-status').value = m.상태;
   document.getElementById('mem-type').value = m.장애비장애구분;
   document.getElementById('mem-class').value = m.구분 || '개별';
+  document.getElementById('mem-team').value = m.팀명 || '';
   document.getElementById('mem-programs').value = m.사업명 || '';
   document.getElementById('mem-memo').value = m.메모 || '';
   
@@ -176,9 +180,10 @@ async function saveMember() {
   const data = {
     이름: document.getElementById('mem-name').value,
     시작일: document.getElementById('mem-start').value,
-    상태: document.getElementById('mem-status').value,
     장애비장애구분: document.getElementById('mem-type').value,
     구분: document.getElementById('mem-class').value,
+    상태: document.getElementById('mem-status').value,
+    팀명: document.getElementById('mem-team').value,
     사업명: document.getElementById('mem-programs').value,
     메모: document.getElementById('mem-memo').value
   };
@@ -202,7 +207,7 @@ window.downloadMembersCSV = function() {
     return;
   }
 
-  const headers = ['이름', '시작일', '상태', '장애비장애구분', '구분', '사업명', '메모'];
+  const headers = ['이름', '시작일', '장애비장애구분', '구분', '상태', '팀명', '사업명', '메모'];
   const escapeCSV = (val) => {
     const str = String(val == null ? '' : val);
     if (str.includes(',') || str.includes('"') || str.includes('\n')) {
@@ -216,9 +221,10 @@ window.downloadMembersCSV = function() {
     csv += [
       m.이름,
       Utils.formatDate(m.시작일),
-      m.상태,
       m.장애비장애구분,
       m.구분 || '개별',
+      m.상태,
+      m.팀명 || '',
       m.사업명 || '',
       m.메모 || ''
     ].map(escapeCSV).join(',') + '\n';

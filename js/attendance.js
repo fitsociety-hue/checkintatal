@@ -71,7 +71,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       
       // Fetch members for the program
       try {
-        const res = await API.fetchGAS('getMembers', { programId: 'all', status: '활성', forceRefresh: true });
+        const teamName = user.role === '관리자' ? '' : user.team;
+        const res = await API.fetchGAS('getMembers', { programId: 'all', status: '활성', teamName, forceRefresh: true });
         const allMembers = res.data || [];
         
         if (program.사업명) {

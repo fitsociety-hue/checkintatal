@@ -52,7 +52,7 @@ function handleRequest(e, method) {
       case 'register': result = registerUser(payload.team, payload.name, payload.password, payload.role); break;
       
       // 회원 관리
-      case 'getMembers': result = getMembers(payload.programId, payload.status, payload.programName); break;
+      case 'getMembers': result = getMembers(payload.programId, payload.status, payload.programName, payload.teamName); break;
       case 'addMember': result = addMember(payload.data); break;
       case 'updateMember': result = updateMember(payload.name, payload.data); break;
       case 'importMembersCSV': result = importMembersCSV(payload.csvData); break;
@@ -135,7 +135,7 @@ function getHeadersForSheet(sheetName) {
   switch (sheetName) {
     case '직원_마스터': return ['직원ID', '이름', '팀명', '직위', '비밀번호', '상태', '담당사업IDs', '삭제비밀번호'];
     case '사업_마스터': return ['팀명', '사업분류', '세부사업분류', '사업명', '실적유형', '상태', '목표_실인원', '목표_건수', '목표_연인원', '담당자', '사업ID'];
-    case '회원_마스터': return ['이름', '시작일', '상태', '장애비장애구분', '구분', '사업명', '메모'];
+    case '회원_마스터': return ['이름', '시작일', '장애비장애구분', '구분', '상태', '팀명', '사업명', '메모'];
     case '출석_원장': return ['출석ID', '날짜', '사업ID', '사업명', '팀명', '이름', '출석여부', '건수', '입력방식', '입력자', '입력시각', '실인원', '연인원', '세부_직원', '세부_장애인', '세부_비장애인', '비고'];
     case '실적_집계': return ['팀명', '사업명', '년도', '월', '실인원', '건수', '연인원', '목표대비_실인원(%)', '목표대비_건수(%)', '목표대비_연인원(%)'];
     default: return [];
@@ -416,10 +416,13 @@ function deleteProgramRecord(programId, pin, user) {
 // 회원 관리
 // ==============================================================================
 
-function getMembers(programId, status, programName) {
+function getMembers(programId, status, programName, teamName) {
   let members = getSheetDataAsJSON('회원_마스터');
   if (status && status !== 'all') {
     members = members.filter(m => m.상태 === status);
+  }
+  if (teamName && teamName !== '전체' && teamName !== '관리자') {
+    members = members.filter(m => m.팀명 === teamName);
   }
   // 사업명으로 필터링 (회원의 사업명 필드에 해당 사업명이 포함되어 있는지 확인, 공백 무시)
   if (programName) {
@@ -437,7 +440,7 @@ function getMembers(programId, status, programName) {
 function addMember(data) {
   const sheet = getSheet('회원_마스터');
   sheet.appendRow([
-    data.이름, data.시작일, data.상태 || '활성', data.장애비장애구분 || '비장애', data.구분 || '개별', data.사업명 || '', data.메모 || ''
+    data.이름, data.시작일, data.장애비장애구분 || '비장애', data.구분 || '개별', data.상태 || '활성', data.팀명 || '', data.사업명 || '', data.메모 || ''
   ]);
   invalidateCache();
   return true;
@@ -448,8 +451,8 @@ function updateMember(name, data) {
   const vals = sheet.getDataRange().getValues();
   for (let i = 1; i < vals.length; i++) {
     if (vals[i][0] === name) {
-      sheet.getRange(i + 1, 1, 1, 7).setValues([[
-        data.이름, data.시작일, data.상태 || '활성', data.장애비장애구분 || '비장애', data.구분 || '개별', data.사업명 || '', data.메모 || ''
+      sheet.getRange(i + 1, 1, 1, 8).setValues([[
+        data.이름, data.시작일, data.장애비장애구분 || '비장애', data.구분 || '개별', data.상태 || '활성', data.팀명 || '', data.사업명 || '', data.메모 || ''
       ]]);
       invalidateCache();
       return true;
@@ -462,7 +465,7 @@ function importMembersCSV(csvData) {
   const sheet = getSheet('회원_마스터');
   csvData.forEach(row => {
     sheet.appendRow([
-      row.이름, row.시작일, row.상태 || '활성', row.장애비장애구분 || '비장애', row.구분 || '개별', row.사업명 || '', row.메모 || ''
+      row.이름, row.시작일, row.장애비장애구분 || '비장애', row.구분 || '개별', row.상태 || '활성', row.팀명 || '', row.사업명 || '', row.메모 || ''
     ]);
   });
   invalidateCache();
