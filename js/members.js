@@ -35,9 +35,29 @@ document.addEventListener('DOMContentLoaded', async () => {
       const text = e.target.result;
       const parsed = Utils.parseCSV(text);
       if (parsed.length > 0) {
+        // 중복 방지 필터링: 이름, 시작일, 장애비장애구분
+        const uniqueData = parsed.filter(newRow => {
+          const newRowDate = Utils.formatDate(newRow.시작일);
+          return !allMembers.some(existing => 
+            existing.이름 === newRow.이름 && 
+            Utils.formatDate(existing.시작일) === newRowDate && 
+            existing.장애비장애구분 === newRow.장애비장애구분
+          );
+        });
+
+        if (uniqueData.length === 0) {
+          Utils.showToast('모든 데이터가 이미 존재하여 업로드할 항목이 없습니다.', 'warning');
+          e.target.value = '';
+          return;
+        }
+
+        const excludedCount = parsed.length - uniqueData.length;
+
         try {
-          await API.fetchGAS('importMembersCSV', { csvData: parsed });
-          Utils.showToast(`${parsed.length}건의 데이터가 업로드되었습니다.`, 'success');
+          await API.fetchGAS('importMembersCSV', { csvData: uniqueData });
+          let msg = `${uniqueData.length}건의 데이터가 업로드되었습니다.`;
+          if (excludedCount > 0) msg += ` (중복 ${excludedCount}건 제외)`;
+          Utils.showToast(msg, 'success');
           await loadMembers();
         } catch (err) { }
       }
@@ -70,6 +90,8 @@ async function loadMembers(forceRefresh = false) {
     }
 
     allMembers = fetchedMembers;
+    // 이름 가나다순으로 정렬
+    allMembers.sort((a, b) => String(a.이름).localeCompare(String(b.이름), 'ko-KR'));
     applyFilters();
   } catch (e) {
     document.querySelector('#members-table tbody').innerHTML = '<tr><td colspan="7" class="text-center">데이터를 불러오지 못했습니다.</td></tr>';
@@ -184,6 +206,19 @@ async function saveMember() {
     사업명: document.getElementById('mem-programs').value,
     메모: document.getElementById('mem-memo').value
   };
+
+  // 추가 시 중복 검사
+  if (!isEdit) {
+    const isDuplicate = allMembers.some(m => 
+      m.이름 === data.이름 && 
+      Utils.formatDate(m.시작일) === data.시작일 && 
+      m.장애비장애구분 === data.장애비장애구분
+    );
+    if (isDuplicate) {
+      Utils.showToast('이미 동일한 이름, 시작일, 장애여부를 가진 회원이 존재합니다.', 'error');
+      return;
+    }
+  }
 
   try {
     if (isEdit) {
