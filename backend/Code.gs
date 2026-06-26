@@ -422,7 +422,20 @@ function getMembers(programId, status, programName, teamName) {
     members = members.filter(m => m.상태 === status);
   }
   if (teamName && teamName !== '전체' && teamName !== '관리자') {
-    members = members.filter(m => m.팀명 === teamName);
+    const programs = getSheetDataAsJSON('사업_마스터');
+    const teamPrograms = programs.filter(p => p.팀명 === teamName && p.사업명).map(p => String(p.사업명).replace(/\s+/g, ''));
+    
+    members = members.filter(m => {
+      if (m.팀명 === teamName) return true;
+      if (!m.팀명) {
+        const memberPrograms = String(m.사업명 || '').replace(/\s+/g, '');
+        if (memberPrograms) {
+          return teamPrograms.some(tp => memberPrograms.includes(tp));
+        }
+        return true; // 사업명이 없는 기존 회원 데이터도 누락 방지
+      }
+      return false;
+    });
   }
   // 사업명으로 필터링 (회원의 사업명 필드에 해당 사업명이 포함되어 있는지 확인, 공백 무시)
   if (programName) {
