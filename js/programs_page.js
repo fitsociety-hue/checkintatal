@@ -24,9 +24,28 @@ document.addEventListener('DOMContentLoaded', async () => {
       const text = e.target.result;
       const parsed = Utils.parseCSV(text);
       if (parsed.length > 0) {
+        // 중복 방지 필터링: 팀명, 세부사업분류, 사업명
+        const uniqueData = parsed.filter(newRow => {
+          return !allPrograms.some(existing => 
+            existing.팀명 === newRow.팀명 &&
+            existing.세부사업분류 === newRow.세부사업분류 &&
+            existing.사업명 === newRow.사업명
+          );
+        });
+
+        if (uniqueData.length === 0) {
+          Utils.showToast('모든 사업 데이터가 이미 존재하여 업로드할 항목이 없습니다.', 'warning');
+          e.target.value = '';
+          return;
+        }
+
+        const excludedCount = parsed.length - uniqueData.length;
+
         try {
-          await API.fetchGAS('importProgramsCSV', { csvData: parsed });
-          Utils.showToast(`${parsed.length}건의 사업이 업로드되었습니다.`, 'success');
+          await API.fetchGAS('importProgramsCSV', { csvData: uniqueData });
+          let msg = `${uniqueData.length}건의 사업이 업로드되었습니다.`;
+          if (excludedCount > 0) msg += ` (중복 ${excludedCount}건 제외)`;
+          Utils.showToast(msg, 'success');
           await loadPrograms();
         } catch (err) { }
       }
@@ -154,6 +173,19 @@ async function saveProgram() {
     상태: document.getElementById('prog-status').value,
     담당자: document.getElementById('prog-manager').value
   };
+
+  // 추가 시 중복 검사
+  if (!isEdit) {
+    const isDuplicate = allPrograms.some(p => 
+      p.팀명 === data.팀명 && 
+      p.세부사업분류 === data.세부사업분류 && 
+      p.사업명 === data.사업명
+    );
+    if (isDuplicate) {
+      Utils.showToast('해당 팀에 이미 동일한 세부사업분류와 사업명을 가진 사업이 존재합니다.', 'error');
+      return;
+    }
+  }
 
   try {
     if (isEdit) {
