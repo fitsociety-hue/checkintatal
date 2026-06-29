@@ -92,7 +92,22 @@ async function renderAdminDashboard(container, forceRefresh = false) {
   }
 }
 
+window.currentLeaderStats = null;
+
 async function renderLeaderDashboard(container, teamName, forceRefresh = false) {
+  const currentYear = new Date().getFullYear();
+  const currentMonth = new Date().getMonth() + 1;
+  
+  let yearOptions = '';
+  for(let y=currentYear-1; y<=currentYear+1; y++) {
+    yearOptions += `<option value="${y}" ${y===currentYear?'selected':''}>${y}년</option>`;
+  }
+  
+  let monthOptions = '';
+  for(let m=1; m<=12; m++) {
+    monthOptions += `<option value="${m}" ${m===currentMonth?'selected':''}>${m}월</option>`;
+  }
+
   container.innerHTML = `
     <div class="flex justify-between items-center mb-3">
       <h2 style="margin:0;">${teamName} 대시보드</h2>
@@ -101,78 +116,160 @@ async function renderLeaderDashboard(container, teamName, forceRefresh = false) 
     <div class="grid-cards mb-3" id="leader-summary">
       <div class="glass-card stat-card"><div class="spinner"></div></div>
     </div>
+    
+    <div class="glass-card mb-3">
+      <h3 class="mb-2">월별 실적 보고서 작성</h3>
+      <div class="flex gap-2 items-center mb-3">
+        <select id="report-year" class="form-select" style="max-width: 100px;">${yearOptions}</select>
+        <select id="report-month" class="form-select" style="max-width: 100px;">${monthOptions}</select>
+      </div>
+      <div class="grid-cards" style="grid-template-columns: 1fr 1fr; gap: 16px;">
+        <div>
+          <label class="form-label" style="font-weight: bold; margin-bottom: 4px; display: block;">실적 총평</label>
+          <textarea id="report-performance" class="form-input" rows="4" placeholder="해당 월의 전반적인 실적 평가를 작성하세요."></textarea>
+        </div>
+        <div>
+          <label class="form-label" style="font-weight: bold; margin-bottom: 4px; display: block;">예산 (세입/세출)</label>
+          <textarea id="report-budget" class="form-input" rows="4" placeholder="예산 집행 내역 및 특이사항을 작성하세요."></textarea>
+        </div>
+        <div>
+          <label class="form-label" style="font-weight: bold; margin-bottom: 4px; display: block;">성과 (특이사항)</label>
+          <textarea id="report-achievements" class="form-input" rows="4" placeholder="주요 성과 및 특이사항을 작성하세요."></textarea>
+        </div>
+        <div>
+          <label class="form-label" style="font-weight: bold; margin-bottom: 4px; display: block;">향후 계획</label>
+          <textarea id="report-plans" class="form-input" rows="4" placeholder="다음 달 주요 계획을 작성하세요."></textarea>
+        </div>
+      </div>
+      <div class="mt-3" style="text-align: right;">
+        <button class="btn-success" onclick="downloadLeaderReport('${teamName}')">엑셀 보고서 다운로드</button>
+      </div>
+    </div>
+
+    <!-- 상세 실적 표 영역 -->
+    <div class="glass-card mb-3">
+      <h3 class="mb-2">사업별 상세 실적</h3>
+      <div class="table-container">
+        <table class="table-glass" id="leader-stats-table">
+          <thead>
+            <tr>
+              <th rowspan="2">팀명</th>
+              <th rowspan="2">사업명</th>
+              <th colspan="3">목표 실적</th>
+              <th colspan="3">기간 실적</th>
+              <th colspan="3">목표 달성률</th>
+            </tr>
+            <tr>
+              <th>실인원</th>
+              <th>건수</th>
+              <th>연인원</th>
+              <th>실인원</th>
+              <th>건수</th>
+              <th>연인원</th>
+              <th>실인원</th>
+              <th>건수</th>
+              <th>연인원</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td colspan="11" class="text-center">데이터를 불러오는 중입니다...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
   `;
+
+  document.getElementById('report-year').addEventListener('change', () => updateLeaderReportStats(teamName));
+  document.getElementById('report-month').addEventListener('change', () => updateLeaderReportStats(teamName));
+
+  updateLeaderReportStats(teamName, forceRefresh);
+}
+
+window.updateLeaderReportStats = async function(teamName, forceRefresh = false) {
+  const summaryDiv = document.getElementById('leader-summary');
+  const tbody = document.querySelector('#leader-stats-table tbody');
+  
+  if (summaryDiv) summaryDiv.innerHTML = '<div class="glass-card stat-card"><div class="spinner"></div></div>';
+  if (tbody) tbody.innerHTML = '<tr><td colspan="11" class="text-center">데이터를 불러오는 중입니다...</td></tr>';
+  
   try {
-    const params = { teamName };
+    const year = document.getElementById('report-year').value;
+    const month = document.getElementById('report-month').value;
+    const params = { teamName, year, periodType: 'month', periodValue: month };
     if (forceRefresh) params.forceRefresh = true;
+
     const res = await API.fetchGAS('getStats', params);
-    const stats = res.data || { real: 0, accum: 0, count: 0, rate: 0 };
-    document.getElementById('leader-summary').innerHTML = `
-      <div class="glass-card stat-card">
-        <h3>팀 실인원</h3>
-        <div class="value">${Utils.formatNumber(stats.real)}명</div>
-      </div>
-      <div class="glass-card stat-card">
-        <h3>팀 건수</h3>
-        <div class="value">${Utils.formatNumber(stats.count)}건</div>
-      </div>
-      <div class="glass-card stat-card">
-        <h3>팀 연인원</h3>
-        <div class="value">${Utils.formatNumber(stats.accum)}명</div>
-      </div>
-      <div class="glass-card stat-card">
-        <h3>팀 달성률</h3>
-        <div class="value">${stats.rate}%</div>
-        <div class="progress-container"><div class="progress-bar" style="width: ${Math.min(stats.rate, 100)}%"></div></div>
-      </div>
-    `;
+    const stats = res.data;
+    window.currentLeaderStats = stats;
 
-    // Add Report UI
-    const currentYear = new Date().getFullYear();
-    const currentMonth = new Date().getMonth() + 1;
+    let targetReal = 0, actualReal = 0;
+    let targetCount = 0, actualCount = 0;
+    let targetAccum = 0, actualAccum = 0;
     
-    let yearOptions = '';
-    for(let y=currentYear-1; y<=currentYear+1; y++) {
-      yearOptions += `<option value="${y}" ${y===currentYear?'selected':''}>${y}년</option>`;
-    }
-    
-    let monthOptions = '';
-    for(let m=1; m<=12; m++) {
-      monthOptions += `<option value="${m}" ${m===currentMonth?'selected':''}>${m}월</option>`;
+    if (stats && stats.programs) {
+      stats.programs.forEach(p => {
+        targetReal += p.목표_실인원 || 0;
+        actualReal += p.실인원 || 0;
+        targetCount += p.목표_건수 || 0;
+        actualCount += p.건수 || 0;
+        targetAccum += p.목표_연인원 || 0;
+        actualAccum += p.연인원 || 0;
+      });
     }
 
-    container.innerHTML += `
-      <div class="glass-card mb-3">
-        <h3 class="mb-2">월별 실적 보고서 작성</h3>
-        <div class="flex gap-2 items-center mb-3">
-          <select id="report-year" class="form-select" style="max-width: 100px;">${yearOptions}</select>
-          <select id="report-month" class="form-select" style="max-width: 100px;">${monthOptions}</select>
-        </div>
-        <div class="grid-cards" style="grid-template-columns: 1fr 1fr; gap: 16px;">
-          <div>
-            <label class="form-label" style="font-weight: bold; margin-bottom: 4px; display: block;">실적 총평</label>
-            <textarea id="report-performance" class="form-input" rows="4" placeholder="해당 월의 전반적인 실적 평가를 작성하세요."></textarea>
-          </div>
-          <div>
-            <label class="form-label" style="font-weight: bold; margin-bottom: 4px; display: block;">예산 (세입/세출)</label>
-            <textarea id="report-budget" class="form-input" rows="4" placeholder="예산 집행 내역 및 특이사항을 작성하세요."></textarea>
-          </div>
-          <div>
-            <label class="form-label" style="font-weight: bold; margin-bottom: 4px; display: block;">성과 (특이사항)</label>
-            <textarea id="report-achievements" class="form-input" rows="4" placeholder="주요 성과 및 특이사항을 작성하세요."></textarea>
-          </div>
-          <div>
-            <label class="form-label" style="font-weight: bold; margin-bottom: 4px; display: block;">향후 계획</label>
-            <textarea id="report-plans" class="form-input" rows="4" placeholder="다음 달 주요 계획을 작성하세요."></textarea>
-          </div>
-        </div>
-        <div class="mt-3" style="text-align: right;">
-          <button class="btn-success" onclick="downloadLeaderReport('${teamName}')">엑셀 보고서 다운로드</button>
-        </div>
-      </div>
-    `;
+    const rateReal = targetReal > 0 ? Math.round((actualReal / targetReal) * 100) : 0;
+    const rateCount = targetCount > 0 ? Math.round((actualCount / targetCount) * 100) : 0;
+    const rateAccum = targetAccum > 0 ? Math.round((actualAccum / targetAccum) * 100) : 0;
+    const avgRate = Math.round((rateReal + rateCount + rateAccum) / 3) || 0;
 
-  } catch(e){}
+    if (summaryDiv) {
+      summaryDiv.innerHTML = `
+        <div class="glass-card stat-card">
+          <h3>팀 실인원</h3>
+          <div class="value">${Utils.formatNumber(actualReal)}명</div>
+        </div>
+        <div class="glass-card stat-card">
+          <h3>팀 건수</h3>
+          <div class="value">${Utils.formatNumber(actualCount)}건</div>
+        </div>
+        <div class="glass-card stat-card">
+          <h3>팀 연인원</h3>
+          <div class="value">${Utils.formatNumber(actualAccum)}명</div>
+        </div>
+        <div class="glass-card stat-card">
+          <h3>팀 달성률 (평균)</h3>
+          <div class="value">${avgRate}%</div>
+          <div class="progress-container"><div class="progress-bar" style="width: ${Math.min(avgRate, 100)}%"></div></div>
+        </div>
+      `;
+    }
+
+    if (tbody) {
+      if (!stats || !stats.programs || stats.programs.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="11" class="text-center">조회된 실적이 없습니다.</td></tr>';
+      } else {
+        const getColor = (rate) => rate >= 100 ? 'var(--success)' : rate >= 80 ? 'var(--primary)' : rate >= 50 ? 'var(--warning)' : 'var(--danger)';
+        tbody.innerHTML = stats.programs.map(p => `
+          <tr>
+            <td data-label="팀명">${p.팀명 || '-'}</td>
+            <td data-label="사업명">${p.사업명 || '-'}</td>
+            <td data-label="목표 실인원">${Utils.formatNumber(p.목표_실인원 || 0)}</td>
+            <td data-label="목표 건수">${Utils.formatNumber(p.목표_건수 || 0)}</td>
+            <td data-label="목표 연인원">${Utils.formatNumber(p.목표_연인원 || 0)}</td>
+            <td data-label="실적 실인원" style="font-weight: 500;">${Utils.formatNumber(p.실인원 || 0)}</td>
+            <td data-label="실적 건수" style="font-weight: 500;">${Utils.formatNumber(p.건수 || 0)}</td>
+            <td data-label="실적 연인원" style="font-weight: 500;">${Utils.formatNumber(p.연인원 || 0)}</td>
+            <td data-label="달성률(실인원)"><span style="color:${getColor(p.목표대비_실인원)}; font-weight: bold;">${p.목표대비_실인원 || 0}%</span></td>
+            <td data-label="달성률(건수)"><span style="color:${getColor(p.목표대비_건수)}; font-weight: bold;">${p.목표대비_건수 || 0}%</span></td>
+            <td data-label="달성률(연인원)"><span style="color:${getColor(p.목표대비_연인원)}; font-weight: bold;">${p.목표대비_연인원 || 0}%</span></td>
+          </tr>
+        `).join('');
+      }
+    }
+  } catch(e) {
+    if (summaryDiv) summaryDiv.innerHTML = '<p>데이터를 불러오지 못했습니다.</p>';
+    if (tbody) tbody.innerHTML = '<tr><td colspan="11" class="text-center">데이터를 불러오지 못했습니다.</td></tr>';
+  }
 }
 
 async function renderStaffDashboard(container, user, forceRefresh = false) {
@@ -239,8 +336,7 @@ window.downloadLeaderReport = async function(teamName) {
     const year = document.getElementById('report-year').value;
     const month = document.getElementById('report-month').value;
     
-    const res = await API.fetchGAS('getStats', { teamName, year, periodType: 'month', periodValue: month });
-    const stats = res.data;
+    const stats = window.currentLeaderStats;
     
     if (!stats || !stats.programs || stats.programs.length === 0) {
       Utils.showToast('해당 월의 실적 데이터가 없습니다.', 'warning');
