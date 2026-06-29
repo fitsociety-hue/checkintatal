@@ -79,9 +79,10 @@ function handleRequest(e, method) {
       case 'selfCheckIn': result = selfCheckIn(payload.token, payload.programId, payload.date, payload.name); break;
       
       // 실적 집계
-      case 'getStats': result = getStats(payload.teamName, payload.year, payload.month); break;
-      case 'getAllStats': result = getAllStats(payload.year, payload.month); break;
-      case 'getPersonalStats': result = getPersonalStats(payload.staffId, payload.year, payload.month); break;
+      case 'getStats': result = getStats(payload.teamName, payload.year, payload.periodType, payload.periodValue); break;
+      case 'getAllStats': result = getAllStats(payload.year, payload.periodType, payload.periodValue); break;
+      case 'getPersonalStats': result = getPersonalStats(payload.staffId, payload.year, payload.periodType, payload.periodValue); break;
+      case 'saveStatsMaster': result = saveStatsMaster(payload.year, payload.periodType, payload.periodValue, payload.statsData, user); break;
       
       // 시스템 관리
       case 'setupAutoSyncTrigger': result = setupAutoSyncTrigger(); break;
@@ -138,6 +139,7 @@ function getHeadersForSheet(sheetName) {
     case '회원_마스터': return ['이름', '시작일', '장애비장애구분', '구분', '상태', '팀명', '사업명', '메모'];
     case '출석_원장': return ['출석ID', '날짜', '사업ID', '사업명', '팀명', '이름', '출석여부', '건수', '입력방식', '입력자', '입력시각', '실인원', '연인원', '세부_직원', '세부_장애인', '세부_비장애인', '비고'];
     case '실적_집계': return ['팀명', '사업명', '년도', '월', '실인원', '건수', '연인원', '목표대비_실인원(%)', '목표대비_건수(%)', '목표대비_연인원(%)'];
+    case '실적_마스터': return ['년도', '기준', '팀명', '사업명', '목표_실인원', '목표_건수', '목표_연인원', '실적_실인원', '실적_건수', '실적_연인원', '달성률_실인원', '달성률_건수', '달성률_연인원'];
     default: return [];
   }
 }
@@ -761,17 +763,19 @@ function recalcStatsDirectly() {
   // 실제 대용량 처리에서는 별도의 시간 트리거로 돌리는 것을 권장합니다.
 }
 
-function calculateStatsCore(progs, targetYear, targetMonth, isAllMonths, attData, memberMap) {
+function calculateStatsCore(progs, targetYear, targetMonths, attData, memberMap) {
   const progIds = progs.map(p => p.사업ID);
   const progMap = {};
   progs.forEach(p => { progMap[p.사업ID] = p; });
+
+  const maxTargetMonth = Math.max(...targetMonths);
 
   const cumulativeAtt = attData.filter(a => {
     if (!progIds.includes(a.사업ID)) return false;
     const d = new Date(a.날짜);
     if (d.getFullYear() !== targetYear) return false;
     const mVal = d.getMonth() + 1;
-    return isAllMonths ? true : (mVal <= targetMonth);
+    return (mVal <= maxTargetMonth);
   });
 
   const monthAtt = attData.filter(a => {
@@ -779,7 +783,7 @@ function calculateStatsCore(progs, targetYear, targetMonth, isAllMonths, attData
     const d = new Date(a.날짜);
     if (d.getFullYear() !== targetYear) return false;
     const mVal = d.getMonth() + 1;
-    return isAllMonths ? true : (mVal === targetMonth);
+    return targetMonths.includes(mVal);
   });
 
   let totalRealUnspecified = 0;
@@ -922,6 +926,9 @@ function calculateStatsCore(progs, targetYear, targetMonth, isAllMonths, attData
       사업명: p.사업명,
       parentName: p.사업분류,
       subCategory: p.세부사업분류,
+      목표_실인원: gReal,
+      목표_건수: gCount,
+      목표_연인원: gAccum,
       실인원: actualReal,
       건수: pCount,
       연인원: isMemberType ? pAccum : (isUnspecifiedType ? pAccum : 0),
@@ -947,12 +954,29 @@ function calculateStatsCore(progs, targetYear, targetMonth, isAllMonths, attData
   };
 }
 
-function getStats(teamName, year, month) {
+function getTargetMonths(periodType, periodValue) {
+  if (periodType === 'quarter') {
+    const q = parseInt(periodValue) || 1;
+    if (q === 1) return [1, 2, 3];
+    if (q === 2) return [4, 5, 6];
+    if (q === 3) return [7, 8, 9];
+    if (q === 4) return [10, 11, 12];
+  } else if (periodType === 'half') {
+    const h = parseInt(periodValue) || 1;
+    if (h === 1) return [1, 2, 3, 4, 5, 6];
+    if (h === 2) return [7, 8, 9, 10, 11, 12];
+  } else if (periodType === 'year') {
+    return [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+  } else { // month
+    if (periodValue === 'all') return [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+    return [parseInt(periodValue) || (new Date().getMonth() + 1)];
+  }
+}
+
+function getStats(teamName, year, periodType, periodValue) {
   const now = new Date();
   const targetYear = parseInt(year) || now.getFullYear();
-  const targetMonthStr = String(month || (now.getMonth() + 1));
-  const isAllMonths = (targetMonthStr === 'all');
-  const targetMonth = isAllMonths ? 12 : parseInt(targetMonthStr);
+  const targetMonths = getTargetMonths(periodType, periodValue);
 
   const progs = getSheetDataAsJSON('사업_마스터', true).filter(p => p.팀명 === teamName);
   const attData = getSheetDataAsJSON('출석_원장', true);
@@ -962,16 +986,14 @@ function getStats(teamName, year, month) {
     memberMap[m.이름] = m.구분 || '개별';
   });
 
-  return calculateStatsCore(progs, targetYear, targetMonth, isAllMonths, attData, memberMap);
+  return calculateStatsCore(progs, targetYear, targetMonths, attData, memberMap);
 }
 
 
-function getAllStats(year, month) {
+function getAllStats(year, periodType, periodValue) {
   const now = new Date();
   const targetYear = parseInt(year) || now.getFullYear();
-  const targetMonthStr = String(month || (now.getMonth() + 1));
-  const isAllMonths = (targetMonthStr === 'all');
-  const targetMonth = isAllMonths ? 12 : parseInt(targetMonthStr);
+  const targetMonths = getTargetMonths(periodType, periodValue);
 
   const teams = ['지역연계팀', '맞춤지원팀', '건강문화팀', '성장지원팀', '전략기획팀', '미래경영팀'];
   const allProgs = getSheetDataAsJSON('사업_마스터', true);
@@ -986,20 +1008,22 @@ function getAllStats(year, month) {
   const progMap = {};
   allProgs.forEach(p => { progMap[p.사업ID] = p; });
 
-  // 실인원용 출석 데이터 필터 (해당 연도 1월 1일부터 선택월 말일까지 누적)
+  const maxTargetMonth = Math.max(...targetMonths);
+
+  // 실인원용 출석 데이터 필터 (해당 연도 1월 1일부터 선택기간 마지막 월까지 누적)
   const cumulativeAtt = attData.filter(a => {
     const d = new Date(a.날짜);
     if (d.getFullYear() !== targetYear) return false;
     const mVal = d.getMonth() + 1;
-    return isAllMonths ? true : (mVal <= targetMonth);
+    return (mVal <= maxTargetMonth);
   });
 
-  // 연인원/건수용 출석 데이터 필터 (선택월만 필터)
+  // 연인원/건수용 출석 데이터 필터 (선택기간만 필터)
   const monthAtt = attData.filter(a => {
     const d = new Date(a.날짜);
     if (d.getFullYear() !== targetYear) return false;
     const mVal = d.getMonth() + 1;
-    return isAllMonths ? true : (mVal === targetMonth);
+    return targetMonths.includes(mVal);
   });
 
   let grandReal = new Set();
@@ -1204,6 +1228,9 @@ function getAllStats(year, month) {
     return {
       팀명: p.팀명,
       사업명: p.사업명,
+      목표_실인원: gReal,
+      목표_건수: gCount,
+      목표_연인원: gAccum,
       실인원: isMemberType ? pNames.size : 0,
       건수: pCount,
       연인원: isMemberType ? pAccum : 0,
@@ -1223,15 +1250,13 @@ function getAllStats(year, month) {
   };
 }
 
-function getPersonalStats(staffId, year, month) {
+function getPersonalStats(staffId, year, periodType, periodValue) {
   const staff = getSheetDataAsJSON('직원_마스터').find(s => s.직원ID === staffId);
   if (!staff) return { programs: [] };
   
   const now = new Date();
   const targetYear = parseInt(year) || now.getFullYear();
-  const targetMonthStr = String(month || (now.getMonth() + 1));
-  const isAllMonths = (targetMonthStr === 'all');
-  const targetMonth = isAllMonths ? 12 : parseInt(targetMonthStr);
+  const targetMonths = getTargetMonths(periodType, periodValue);
 
   const staffName = String(staff.이름 || '').trim();
   const allProgs = getSheetDataAsJSON('사업_마스터', true);
@@ -1245,7 +1270,7 @@ function getPersonalStats(staffId, year, month) {
     memberMap[m.이름] = m.구분 || '개별';
   });
 
-  return calculateStatsCore(progs, targetYear, targetMonth, isAllMonths, attData, memberMap);
+  return calculateStatsCore(progs, targetYear, targetMonths, attData, memberMap);
 }
 
 // ==============================================================================
@@ -1379,4 +1404,74 @@ function setupAutoSyncTrigger() {
 function onSpreadsheetChange(e) {
   // 사용자가 시트에서 직접 행 삭제, 추가, 수정 등 구조적 변경을 가했을 때 캐시 무효화
   invalidateCache();
+}
+
+// ==============================================================================
+// 실적_마스터 자동 저장
+// ==============================================================================
+
+function saveStatsMaster(year, periodType, periodValue, statsData, user) {
+  if (!user || user.role !== '관리자') {
+    throw new Error('권한이 없습니다.');
+  }
+
+  const sheet = getSheet('실적_마스터');
+  const targetYear = parseInt(year);
+  
+  let periodLabel = '';
+  if (periodType === 'quarter') {
+    periodLabel = periodValue + '분기';
+  } else if (periodType === 'half') {
+    periodLabel = (periodValue == 1) ? '상반기' : '하반기';
+  } else if (periodType === 'year') {
+    periodLabel = '연간';
+  } else {
+    if (periodValue === 'all') periodLabel = '전체 월';
+    else periodLabel = periodValue + '월';
+  }
+
+  const vals = sheet.getDataRange().getValues();
+  // 기존 데이터 중 동일한 년도와 기준(periodLabel)인 데이터 삭제
+  let deleted = false;
+  if (vals.length > 1) {
+    for (let i = vals.length - 1; i >= 1; i--) {
+      // 년도는 0번째 컬럼, 기준은 1번째 컬럼
+      if (String(vals[i][0]) === String(targetYear) && String(vals[i][1]) === periodLabel) {
+        sheet.deleteRow(i + 1);
+        deleted = true;
+      }
+    }
+  }
+
+  // ['년도', '기준', '팀명', '사업명', '목표_실인원', '목표_건수', '목표_연인원', '실적_실인원', '실적_건수', '실적_연인원', '달성률_실인원', '달성률_건수', '달성률_연인원']
+  const newRows = [];
+  if (statsData && statsData.length > 0) {
+    statsData.forEach(p => {
+      newRows.push([
+        targetYear,
+        periodLabel,
+        p.팀명 || '',
+        p.사업명 || '',
+        p.목표_실인원 || 0,
+        p.목표_건수 || 0,
+        p.목표_연인원 || 0,
+        p.실인원 || 0,
+        p.건수 || 0,
+        p.연인원 || 0,
+        p['목표대비_실인원'] || 0,
+        p['목표대비_건수'] || 0,
+        p['목표대비_연인원'] || 0
+      ]);
+    });
+  }
+
+  if (newRows.length > 0) {
+    sheet.getRange(sheet.getLastRow() + 1, 1, newRows.length, 13).setValues(newRows);
+  }
+
+  if (deleted || newRows.length > 0) {
+    invalidateCache();
+  }
+
+  return true;
 }
