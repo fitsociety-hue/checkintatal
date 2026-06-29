@@ -132,23 +132,100 @@ function renderTable(programs) {
     return;
   }
 
-  tbody.innerHTML = programs.map(p => {
-    return `
-      <tr>
-        <td data-label="팀명">${p.팀명 || '-'}</td>
-        <td data-label="사업명">${p.사업명 || '-'}</td>
-        <td data-label="목표 실인원">${Utils.formatNumber(p.목표_실인원 || 0)}</td>
-        <td data-label="목표 건수">${Utils.formatNumber(p.목표_건수 || 0)}</td>
-        <td data-label="목표 연인원">${Utils.formatNumber(p.목표_연인원 || 0)}</td>
-        <td data-label="실적 실인원" style="font-weight: 500;">${Utils.formatNumber(p.실인원 || 0)}</td>
-        <td data-label="실적 건수" style="font-weight: 500;">${Utils.formatNumber(p.건수 || 0)}</td>
-        <td data-label="실적 연인원" style="font-weight: 500;">${Utils.formatNumber(p.연인원 || 0)}</td>
-        <td data-label="달성률(실인원)"><span style="color:${getColor(p.목표대비_실인원)}; font-weight: bold;">${p.목표대비_실인원 || 0}%</span></td>
-        <td data-label="달성률(건수)"><span style="color:${getColor(p.목표대비_건수)}; font-weight: bold;">${p.목표대비_건수 || 0}%</span></td>
-        <td data-label="달성률(연인원)"><span style="color:${getColor(p.목표대비_연인원)}; font-weight: bold;">${p.목표대비_연인원 || 0}%</span></td>
+  let totalTargets = { real: 0, count: 0, accum: 0 };
+  let totalActuals = { real: 0, count: 0, accum: 0 };
+  
+  const teamMap = {};
+  const TEAM_ORDER = ['지역연계팀', '맞춤지원팀', '건강문화팀', '성장지원팀', '전략기획팀', '미래경영팀'];
+  
+  programs.forEach(p => {
+    totalTargets.real += p.목표_실인원 || 0;
+    totalTargets.count += p.목표_건수 || 0;
+    totalTargets.accum += p.목표_연인원 || 0;
+    totalActuals.real += p.실인원 || 0;
+    totalActuals.count += p.건수 || 0;
+    totalActuals.accum += p.연인원 || 0;
+
+    if (!teamMap[p.팀명]) {
+      teamMap[p.팀명] = {
+        name: p.팀명,
+        targets: { real: 0, count: 0, accum: 0 },
+        actuals: { real: 0, count: 0, accum: 0 },
+        programs: []
+      };
+    }
+    teamMap[p.팀명].targets.real += p.목표_실인원 || 0;
+    teamMap[p.팀명].targets.count += p.목표_건수 || 0;
+    teamMap[p.팀명].targets.accum += p.목표_연인원 || 0;
+    teamMap[p.팀명].actuals.real += p.실인원 || 0;
+    teamMap[p.팀명].actuals.count += p.건수 || 0;
+    teamMap[p.팀명].actuals.accum += p.연인원 || 0;
+    teamMap[p.팀명].programs.push(p);
+  });
+
+  const getRate = (a, t) => t > 0 ? Math.round((a / t) * 100) : 0;
+  
+  let html = '';
+  
+  html += `
+    <tr style="background-color: #f1f5f9; font-weight: bold;">
+      <td colspan="2" class="text-center">총계</td>
+      <td data-label="목표 실인원">${Utils.formatNumber(totalTargets.real)}</td>
+      <td data-label="목표 건수">${Utils.formatNumber(totalTargets.count)}</td>
+      <td data-label="목표 연인원">${Utils.formatNumber(totalTargets.accum)}</td>
+      <td data-label="실적 실인원">${Utils.formatNumber(totalActuals.real)}</td>
+      <td data-label="실적 건수">${Utils.formatNumber(totalActuals.count)}</td>
+      <td data-label="실적 연인원">${Utils.formatNumber(totalActuals.accum)}</td>
+      <td data-label="달성률(실인원)"><span style="color:${getColor(getRate(totalActuals.real, totalTargets.real))}">${getRate(totalActuals.real, totalTargets.real)}%</span></td>
+      <td data-label="달성률(건수)"><span style="color:${getColor(getRate(totalActuals.count, totalTargets.count))}">${getRate(totalActuals.count, totalTargets.count)}%</span></td>
+      <td data-label="달성률(연인원)"><span style="color:${getColor(getRate(totalActuals.accum, totalTargets.accum))}">${getRate(totalActuals.accum, totalTargets.accum)}%</span></td>
+    </tr>
+  `;
+
+  const sortedTeams = Object.values(teamMap).sort((a, b) => {
+    let ia = TEAM_ORDER.indexOf(a.name);
+    let ib = TEAM_ORDER.indexOf(b.name);
+    if (ia === -1) ia = 999;
+    if (ib === -1) ib = 999;
+    return ia - ib;
+  });
+
+  sortedTeams.forEach(team => {
+    html += `
+      <tr style="background-color: #e2e8f0; font-weight: bold;">
+        <td colspan="2" class="text-center">${team.name || '미분류'} 소계</td>
+        <td data-label="목표 실인원">${Utils.formatNumber(team.targets.real)}</td>
+        <td data-label="목표 건수">${Utils.formatNumber(team.targets.count)}</td>
+        <td data-label="목표 연인원">${Utils.formatNumber(team.targets.accum)}</td>
+        <td data-label="실적 실인원">${Utils.formatNumber(team.actuals.real)}</td>
+        <td data-label="실적 건수">${Utils.formatNumber(team.actuals.count)}</td>
+        <td data-label="실적 연인원">${Utils.formatNumber(team.actuals.accum)}</td>
+        <td data-label="달성률(실인원)"><span style="color:${getColor(getRate(team.actuals.real, team.targets.real))}">${getRate(team.actuals.real, team.targets.real)}%</span></td>
+        <td data-label="달성률(건수)"><span style="color:${getColor(getRate(team.actuals.count, team.targets.count))}">${getRate(team.actuals.count, team.targets.count)}%</span></td>
+        <td data-label="달성률(연인원)"><span style="color:${getColor(getRate(team.actuals.accum, team.targets.accum))}">${getRate(team.actuals.accum, team.targets.accum)}%</span></td>
       </tr>
     `;
-  }).join('');
+    
+    team.programs.forEach(p => {
+      html += `
+        <tr>
+          <td data-label="팀명">${p.팀명 || '-'}</td>
+          <td data-label="사업명">${p.사업명 || '-'}</td>
+          <td data-label="목표 실인원">${Utils.formatNumber(p.목표_실인원 || 0)}</td>
+          <td data-label="목표 건수">${Utils.formatNumber(p.목표_건수 || 0)}</td>
+          <td data-label="목표 연인원">${Utils.formatNumber(p.목표_연인원 || 0)}</td>
+          <td data-label="실적 실인원" style="font-weight: 500;">${Utils.formatNumber(p.실인원 || 0)}</td>
+          <td data-label="실적 건수" style="font-weight: 500;">${Utils.formatNumber(p.건수 || 0)}</td>
+          <td data-label="실적 연인원" style="font-weight: 500;">${Utils.formatNumber(p.연인원 || 0)}</td>
+          <td data-label="달성률(실인원)"><span style="color:${getColor(p.목표대비_실인원)}; font-weight: bold;">${p.목표대비_실인원 || 0}%</span></td>
+          <td data-label="달성률(건수)"><span style="color:${getColor(p.목표대비_건수)}; font-weight: bold;">${p.목표대비_건수 || 0}%</span></td>
+          <td data-label="달성률(연인원)"><span style="color:${getColor(p.목표대비_연인원)}; font-weight: bold;">${p.목표대비_연인원 || 0}%</span></td>
+        </tr>
+      `;
+    });
+  });
+
+  tbody.innerHTML = html;
 }
 
 function getColor(rate) {
@@ -190,28 +267,114 @@ function exportToExcel() {
     return;
   }
   
-  // Create export format matching UI
-  const exportData = currentStatsData.map(p => ({
-    '팀명': p.팀명,
-    '사업명': p.사업명,
-    '목표_실인원': p.목표_실인원,
-    '목표_건수': p.목표_건수,
-    '목표_연인원': p.목표_연인원,
-    '실적_실인원': p.실인원,
-    '실적_건수': p.건수,
-    '실적_연인원': p.연인원,
-    '달성률_실인원(%)': p.목표대비_실인원,
-    '달성률_건수(%)': p.목표대비_건수,
-    '달성률_연인원(%)': p.목표대비_연인원
-  }));
-
-  const ws = XLSX.utils.json_to_sheet(exportData);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "실적집계");
+  let totalTargets = { real: 0, count: 0, accum: 0 };
+  let totalActuals = { real: 0, count: 0, accum: 0 };
   
+  const teamMap = {};
+  const TEAM_ORDER = ['지역연계팀', '맞춤지원팀', '건강문화팀', '성장지원팀', '전략기획팀', '미래경영팀'];
+  
+  currentStatsData.forEach(p => {
+    totalTargets.real += p.목표_실인원 || 0;
+    totalTargets.count += p.목표_건수 || 0;
+    totalTargets.accum += p.목표_연인원 || 0;
+    totalActuals.real += p.실인원 || 0;
+    totalActuals.count += p.건수 || 0;
+    totalActuals.accum += p.연인원 || 0;
+
+    if (!teamMap[p.팀명]) {
+      teamMap[p.팀명] = {
+        name: p.팀명,
+        targets: { real: 0, count: 0, accum: 0 },
+        actuals: { real: 0, count: 0, accum: 0 },
+        programs: []
+      };
+    }
+    teamMap[p.팀명].targets.real += p.목표_실인원 || 0;
+    teamMap[p.팀명].targets.count += p.목표_건수 || 0;
+    teamMap[p.팀명].targets.accum += p.목표_연인원 || 0;
+    teamMap[p.팀명].actuals.real += p.실인원 || 0;
+    teamMap[p.팀명].actuals.count += p.건수 || 0;
+    teamMap[p.팀명].actuals.accum += p.연인원 || 0;
+    teamMap[p.팀명].programs.push(p);
+  });
+
+  const getRate = (a, t) => t > 0 ? Math.round((a / t) * 100) : 0;
+  
+  const sortedTeams = Object.values(teamMap).sort((a, b) => {
+    let ia = TEAM_ORDER.indexOf(a.name);
+    let ib = TEAM_ORDER.indexOf(b.name);
+    if (ia === -1) ia = 999;
+    if (ib === -1) ib = 999;
+    return ia - ib;
+  });
+
   const y = document.getElementById('filter-year').value;
   const t = document.getElementById('filter-period-type').value;
   const v = document.getElementById('filter-period-value').value;
+  let refValue = v === 'all' ? '전체' : (t === 'month' ? `${v}월` : (t === 'quarter' ? `${v}분기` : (v === '1' ? '상반기' : '하반기')));
+
+  const header = ['년도', '기준', '팀명', '사업명', '목표_실인원', '목표_건수', '목표_연인원', '실적_실인원', '실적_건수', '실적_연인원', '달성률_실인원', '달성률_건수', '달성률_연인원'];
+  const aoa = [header];
+  
+  aoa.push([
+    '총계', null, null, null,
+    totalTargets.real, totalTargets.count, totalTargets.accum,
+    totalActuals.real, totalActuals.count, totalActuals.accum,
+    getRate(totalActuals.real, totalTargets.real),
+    getRate(totalActuals.count, totalTargets.count),
+    getRate(totalActuals.accum, totalTargets.accum)
+  ]);
+  
+  const merges = [
+    { s: {r:1, c:0}, e: {r:1, c:3} }
+  ];
+
+  let rowIndex = 2;
+  
+  sortedTeams.forEach(team => {
+    aoa.push([
+      `${team.name || '미분류'} 소계`, null, null, null,
+      team.targets.real, team.targets.count, team.targets.accum,
+      team.actuals.real, team.actuals.count, team.actuals.accum,
+      getRate(team.actuals.real, team.targets.real),
+      getRate(team.actuals.count, team.targets.count),
+      getRate(team.actuals.accum, team.targets.accum)
+    ]);
+    merges.push({ s: {r:rowIndex, c:0}, e: {r:rowIndex, c:3} });
+    rowIndex++;
+    
+    team.programs.forEach(p => {
+      aoa.push([
+        y,
+        refValue,
+        p.팀명 || '',
+        p.사업명 || '',
+        p.목표_실인원 || 0,
+        p.목표_건수 || 0,
+        p.목표_연인원 || 0,
+        p.실인원 || 0,
+        p.건수 || 0,
+        p.연인원 || 0,
+        p.목표대비_실인원 || 0,
+        p.목표대비_건수 || 0,
+        p.목표대비_연인원 || 0
+      ]);
+      rowIndex++;
+    });
+  });
+
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws['!merges'] = merges;
+  ws['!cols'] = [
+    {wch: 8}, {wch: 8}, {wch: 15}, {wch: 25},
+    {wch: 12}, {wch: 12}, {wch: 12},
+    {wch: 12}, {wch: 12}, {wch: 12},
+    {wch: 12}, {wch: 12}, {wch: 12}
+  ];
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "실적집계");
+  
   const filename = `실적집계_${y}년_${t}_${v}.xlsx`;
   
   XLSX.writeFile(wb, filename);
