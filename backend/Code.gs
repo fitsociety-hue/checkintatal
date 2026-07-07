@@ -776,6 +776,30 @@ function calculateStatsCore(progs, targetYear, targetMonths, attData, memberMap)
     return targetMonths.includes(mVal);
   });
 
+  const minTargetMonth = Math.min(...targetMonths);
+  const priorAtt = attData.filter(a => {
+    if (!progIds.includes(a.사업ID)) return false;
+    const d = new Date(a.날짜);
+    if (d.getFullYear() !== targetYear) return false;
+    const mVal = d.getMonth() + 1;
+    return mVal < minTargetMonth;
+  });
+
+  const priorNamesByProg = {};
+  const priorNamesTotal = new Set();
+  
+  priorAtt.forEach(a => {
+    const p = progMap[a.사업ID];
+    if (!p) return;
+    const isMemberType = (p.실적유형 !== '건수' && p.실적유형 !== '건수만' && p.실적유형 !== '불특정 인원(실인원, 건수, 연인원)');
+    
+    if (isMemberType && a.출석여부 === 'O' && a.이름 !== '건수입력용_무명' && a.이름 !== '불특정_인원_입력') {
+      if (!priorNamesByProg[a.사업ID]) priorNamesByProg[a.사업ID] = new Set();
+      priorNamesByProg[a.사업ID].add(a.이름);
+      priorNamesTotal.add(a.이름);
+    }
+  });
+
   let totalRealUnspecified = 0;
 
   const uniqueNames = new Set();
@@ -786,7 +810,9 @@ function calculateStatsCore(progs, targetYear, targetMonths, attData, memberMap)
     const isUnspecifiedType = (p.실적유형 === '불특정 인원(실인원, 건수, 연인원)');
     
     if (isMemberType && a.출석여부 === 'O' && a.이름 !== '건수입력용_무명' && a.이름 !== '불특정_인원_입력') {
-      uniqueNames.add(a.이름);
+      if (!priorNamesTotal.has(a.이름)) {
+        uniqueNames.add(a.이름);
+      }
     }
     if (isUnspecifiedType) {
       totalRealUnspecified += Number(a.실인원) || 0;
@@ -850,11 +876,16 @@ function calculateStatsCore(progs, targetYear, targetMonths, attData, memberMap)
     const isUnspecifiedType = (p.실적유형 === '불특정 인원(실인원, 건수, 연인원)');
     
     const pMonthAtt = monthAttByProg[p.사업ID] || [];
+    const pPriorNames = priorNamesByProg[p.사업ID] || new Set();
     const pNames = new Set();
     let pCumReal = 0;
     
     pMonthAtt.forEach(a => {
-      if (isMemberType && a.출석여부 === 'O' && a.이름 !== '건수입력용_무명' && a.이름 !== '불특정_인원_입력') pNames.add(a.이름);
+      if (isMemberType && a.출석여부 === 'O' && a.이름 !== '건수입력용_무명' && a.이름 !== '불특정_인원_입력') {
+        if (!pPriorNames.has(a.이름)) {
+          pNames.add(a.이름);
+        }
+      }
       if (isUnspecifiedType) pCumReal += Number(a.실인원) || 0;
     });
     
@@ -1000,6 +1031,29 @@ function getAllStats(year, periodType, periodValue) {
     return targetMonths.includes(mVal);
   });
 
+  const minTargetMonth = Math.min(...targetMonths);
+  const priorAtt = attData.filter(a => {
+    const d = new Date(a.날짜);
+    if (d.getFullYear() !== targetYear) return false;
+    const mVal = d.getMonth() + 1;
+    return mVal < minTargetMonth;
+  });
+
+  const grandPriorNames = new Set();
+  const priorNamesByProg = {};
+
+  priorAtt.forEach(a => {
+    const p = progMap[a.사업ID];
+    if (!p) return;
+    const isMemberType = (p.실적유형 !== '건수' && p.실적유형 !== '건수만' && p.실적유형 !== '불특정 인원(실인원, 건수, 연인원)');
+    
+    if (isMemberType && a.출석여부 === 'O' && a.이름 !== '건수입력용_무명' && a.이름 !== '불특정_인원_입력') {
+      grandPriorNames.add(a.이름);
+      if (!priorNamesByProg[a.사업ID]) priorNamesByProg[a.사업ID] = new Set();
+      priorNamesByProg[a.사업ID].add(a.이름);
+    }
+  });
+
   let grandReal = new Set();
   let grandAccum = 0;
   let grandCount = 0;
@@ -1013,7 +1067,9 @@ function getAllStats(year, periodType, periodValue) {
     const isUnspecifiedType = (p.실적유형 === '불특정 인원(실인원, 건수, 연인원)');
     
     if (isMemberType && a.출석여부 === 'O' && a.이름 !== '건수입력용_무명' && a.이름 !== '불특정_인원_입력') {
-      grandReal.add(a.이름);
+      if (!grandPriorNames.has(a.이름)) {
+        grandReal.add(a.이름);
+      }
     }
     if (isUnspecifiedType) {
       grandCumRealUnspecified += Number(a.실인원) || 0;
@@ -1166,13 +1222,16 @@ function getAllStats(year, periodType, periodValue) {
     
     // 이 사업의 선택월 실인원, 연인원 및 건수
     const progAtt = monthAttByProg[p.사업ID] || [];
+    const pPriorNames = priorNamesByProg[p.사업ID] || new Set();
     const pNames = new Set();
     let pCumReal = 0;
     let pCount = 0, pAccum = 0;
     
     progAtt.forEach(a => {
       if (isMemberType && a.출석여부 === 'O' && a.이름 !== '건수입력용_무명' && a.이름 !== '불특정_인원_입력') {
-        pNames.add(a.이름);
+        if (!pPriorNames.has(a.이름)) {
+          pNames.add(a.이름);
+        }
       }
       if (isUnspecifiedType) {
         pCumReal += Number(a.실인원) || 0;
