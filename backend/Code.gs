@@ -992,17 +992,7 @@ function getAllStats(year, periodType, periodValue) {
   const progMap = {};
   allProgs.forEach(p => { progMap[p.사업ID] = p; });
 
-  const maxTargetMonth = Math.max(...targetMonths);
-
-  // 실인원용 출석 데이터 필터 (해당 연도 1월 1일부터 선택기간 마지막 월까지 누적)
-  const cumulativeAtt = attData.filter(a => {
-    const d = new Date(a.날짜);
-    if (d.getFullYear() !== targetYear) return false;
-    const mVal = d.getMonth() + 1;
-    return (mVal <= maxTargetMonth);
-  });
-
-  // 연인원/건수용 출석 데이터 필터 (선택기간만 필터)
+  // 선택기간 출석 데이터 필터
   const monthAtt = attData.filter(a => {
     const d = new Date(a.날짜);
     if (d.getFullYear() !== targetYear) return false;
@@ -1013,14 +1003,20 @@ function getAllStats(year, periodType, periodValue) {
   let grandReal = new Set();
   let grandAccum = 0;
   let grandCount = 0;
+  let grandCumRealUnspecified = 0;
 
-  // 전체 실인원 집계 (누적)
-  cumulativeAtt.forEach(a => {
+  // 전체 실인원 집계 (선택기간만)
+  monthAtt.forEach(a => {
     const p = progMap[a.사업ID];
     if (!p) return;
-    const isMemberType = (p.실적유형 !== '건수' && p.실적유형 !== '건수만');
-    if (isMemberType && a.출석여부 === 'O' && a.이름 !== '건수입력용_무명') {
+    const isMemberType = (p.실적유형 !== '건수' && p.실적유형 !== '건수만' && p.실적유형 !== '불특정 인원(실인원, 건수, 연인원)');
+    const isUnspecifiedType = (p.실적유형 === '불특정 인원(실인원, 건수, 연인원)');
+    
+    if (isMemberType && a.출석여부 === 'O' && a.이름 !== '건수입력용_무명' && a.이름 !== '불특정_인원_입력') {
       grandReal.add(a.이름);
+    }
+    if (isUnspecifiedType) {
+      grandCumRealUnspecified += Number(a.실인원) || 0;
     }
   });
 
@@ -1028,11 +1024,6 @@ function getAllStats(year, periodType, periodValue) {
   let activeAllProgCount = 0;
 
   // O(N) 그룹핑
-  const cumAttByProg = {};
-  cumulativeAtt.forEach(a => {
-    if (!cumAttByProg[a.사업ID]) cumAttByProg[a.사업ID] = [];
-    cumAttByProg[a.사업ID].push(a);
-  });
   const monthAttByProg = {};
   monthAtt.forEach(a => {
     if (!monthAttByProg[a.사업ID]) monthAttByProg[a.사업ID] = [];
@@ -1054,7 +1045,9 @@ function getAllStats(year, periodType, periodValue) {
       const p = progMap[a.사업ID];
       if (!p) return;
       
-      const isMemberType = (p.실적유형 !== '건수' && p.실적유형 !== '건수만');
+      const isMemberType = (p.실적유형 !== '건수' && p.실적유형 !== '건수만' && p.실적유형 !== '불특정 인원(실인원, 건수, 연인원)');
+      const isUnspecifiedType = (p.실적유형 === '불특정 인원(실인원, 건수, 연인원)');
+      
       if (isMemberType) {
         if (a.출석여부 === 'O') {
           tAccum++;
@@ -1064,6 +1057,10 @@ function getAllStats(year, periodType, periodValue) {
         if (!dailyAttByProg[a.사업ID]) dailyAttByProg[a.사업ID] = {};
         if (!dailyAttByProg[a.사업ID][dateStr]) dailyAttByProg[a.사업ID][dateStr] = [];
         dailyAttByProg[a.사업ID][dateStr].push(a);
+      } else if (isUnspecifiedType) {
+        tCount += Number(a.건수) || 0;
+        tAccum += Number(a.연인원) || 0;
+        grandAccum += Number(a.연인원) || 0;
       } else {
         tCount += Number(a.건수) || 0;
       }
@@ -1099,7 +1096,8 @@ function getAllStats(year, periodType, periodValue) {
       const progAtt = monthAttByProg[p.사업ID] || [];
       let pCount = 0, pAccum = 0;
       
-      const isMemberType = (p.실적유형 !== '건수' && p.실적유형 !== '건수만');
+      const isMemberType = (p.실적유형 !== '건수' && p.실적유형 !== '건수만' && p.실적유형 !== '불특정 인원(실인원, 건수, 연인원)');
+      const isUnspecifiedType = (p.실적유형 === '불특정 인원(실인원, 건수, 연인원)');
       
       if (isMemberType) {
         progAtt.forEach(a => {
@@ -1127,6 +1125,11 @@ function getAllStats(year, periodType, periodValue) {
           });
           pCount += (hasGroup ? 1 : 0) + indvCount;
         });
+      } else if (isUnspecifiedType) {
+        progAtt.forEach(a => {
+          pCount += Number(a.건수) || 0;
+          pAccum += Number(a.연인원) || 0;
+        });
       } else {
         progAtt.forEach(a => {
           pCount += Number(a.건수) || 0;
@@ -1137,7 +1140,7 @@ function getAllStats(year, periodType, periodValue) {
       const gAccum = Number(p.목표_연인원) || 0;
 
       let mainRate = 0;
-      if (isMemberType) {
+      if (isMemberType || isUnspecifiedType) {
         mainRate = gAccum > 0 ? Math.round((pAccum / gAccum) * 100) : 0;
       } else {
         mainRate = gCount > 0 ? Math.round((pCount / gCount) * 100) : 0;
@@ -1158,21 +1161,24 @@ function getAllStats(year, periodType, periodValue) {
 
   // 사업별 상세
   const programStats = allProgs.map(p => {
-    const isMemberType = (p.실적유형 !== '건수' && p.실적유형 !== '건수만');
+    const isMemberType = (p.실적유형 !== '건수' && p.실적유형 !== '건수만' && p.실적유형 !== '불특정 인원(실인원, 건수, 연인원)');
+    const isUnspecifiedType = (p.실적유형 === '불특정 인원(실인원, 건수, 연인원)');
     
-    // 이 사업의 누적 실인원
-    const pCumAtt = cumAttByProg[p.사업ID] || [];
+    // 이 사업의 선택월 실인원, 연인원 및 건수
+    const progAtt = monthAttByProg[p.사업ID] || [];
     const pNames = new Set();
-    pCumAtt.forEach(a => {
-      if (isMemberType && a.출석여부 === 'O' && a.이름 !== '건수입력용_무명') {
+    let pCumReal = 0;
+    let pCount = 0, pAccum = 0;
+    
+    progAtt.forEach(a => {
+      if (isMemberType && a.출석여부 === 'O' && a.이름 !== '건수입력용_무명' && a.이름 !== '불특정_인원_입력') {
         pNames.add(a.이름);
+      }
+      if (isUnspecifiedType) {
+        pCumReal += Number(a.실인원) || 0;
       }
     });
 
-    // 이 사업의 선택월 연인원 및 건수
-    const progAtt = monthAttByProg[p.사업ID] || [];
-    let pCount = 0, pAccum = 0;
-    
     if (isMemberType) {
       progAtt.forEach(a => {
         if (a.출석여부 === 'O') pAccum++;
@@ -1199,6 +1205,11 @@ function getAllStats(year, periodType, periodValue) {
         });
         pCount += (hasGroup ? 1 : 0) + indvCount;
       });
+    } else if (isUnspecifiedType) {
+      progAtt.forEach(a => {
+        pCount += Number(a.건수) || 0;
+        pAccum += Number(a.연인원) || 0;
+      });
     } else {
       progAtt.forEach(a => {
         pCount += Number(a.건수) || 0;
@@ -1208,6 +1219,11 @@ function getAllStats(year, periodType, periodValue) {
     const gReal = Number(p.목표_실인원) || 0;
     const gCount = Number(p.목표_건수) || 0;
     const gAccum = Number(p.목표_연인원) || 0;
+    
+    const actualReal = isMemberType ? pNames.size : (isUnspecifiedType ? pCumReal : 0);
+    const rateReal = gReal > 0 ? Math.round((actualReal / gReal) * 100) : 0;
+    const rateCount = gCount > 0 ? Math.round((pCount / gCount) * 100) : 0;
+    const rateAccum = gAccum > 0 ? Math.round((pAccum / gAccum) * 100) : 0;
 
     return {
       팀명: p.팀명,
@@ -1215,17 +1231,17 @@ function getAllStats(year, periodType, periodValue) {
       목표_실인원: gReal,
       목표_건수: gCount,
       목표_연인원: gAccum,
-      실인원: isMemberType ? pNames.size : 0,
+      실인원: actualReal,
       건수: pCount,
-      연인원: isMemberType ? pAccum : 0,
-      '목표대비_실인원': gReal > 0 ? Math.round((pNames.size / gReal) * 100) : 0,
-      '목표대비_건수': gCount > 0 ? Math.round((pCount / gCount) * 100) : 0,
-      '목표대비_연인원': gAccum > 0 ? Math.round((pAccum / gAccum) * 100) : 0
+      연인원: isMemberType ? pAccum : (isUnspecifiedType ? pAccum : 0),
+      '목표대비_실인원': rateReal,
+      '목표대비_건수': rateCount,
+      '목표대비_연인원': rateAccum
     };
   });
 
   return {
-    totalRealCount: grandReal.size,
+    totalRealCount: grandReal.size + grandCumRealUnspecified,
     totalItemCount: grandCount,
     totalAccumCount: grandAccum,
     avgAchieveRate: avgRate,
