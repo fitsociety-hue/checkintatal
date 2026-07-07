@@ -768,16 +768,6 @@ function calculateStatsCore(progs, targetYear, targetMonths, attData, memberMap)
   const progMap = {};
   progs.forEach(p => { progMap[p.사업ID] = p; });
 
-  const maxTargetMonth = Math.max(...targetMonths);
-
-  const cumulativeAtt = attData.filter(a => {
-    if (!progIds.includes(a.사업ID)) return false;
-    const d = new Date(a.날짜);
-    if (d.getFullYear() !== targetYear) return false;
-    const mVal = d.getMonth() + 1;
-    return (mVal <= maxTargetMonth);
-  });
-
   const monthAtt = attData.filter(a => {
     if (!progIds.includes(a.사업ID)) return false;
     const d = new Date(a.날짜);
@@ -789,7 +779,7 @@ function calculateStatsCore(progs, targetYear, targetMonths, attData, memberMap)
   let totalRealUnspecified = 0;
 
   const uniqueNames = new Set();
-  cumulativeAtt.forEach(a => {
+  monthAtt.forEach(a => {
     const p = progMap[a.사업ID];
     if (!p) return;
     const isMemberType = (p.실적유형 !== '건수' && p.실적유형 !== '건수만' && p.실적유형 !== '불특정 인원(실인원, 건수, 연인원)');
@@ -849,11 +839,6 @@ function calculateStatsCore(progs, targetYear, targetMonths, attData, memberMap)
   let activeProgCount = 0;
 
   // O(N) 그룹핑으로 성능 최적화
-  const cumAttByProg = {};
-  cumulativeAtt.forEach(a => {
-    if (!cumAttByProg[a.사업ID]) cumAttByProg[a.사업ID] = [];
-    cumAttByProg[a.사업ID].push(a);
-  });
   const monthAttByProg = {};
   monthAtt.forEach(a => {
     if (!monthAttByProg[a.사업ID]) monthAttByProg[a.사업ID] = [];
@@ -864,16 +849,15 @@ function calculateStatsCore(progs, targetYear, targetMonths, attData, memberMap)
     const isMemberType = (p.실적유형 !== '건수' && p.실적유형 !== '건수만' && p.실적유형 !== '불특정 인원(실인원, 건수, 연인원)');
     const isUnspecifiedType = (p.실적유형 === '불특정 인원(실인원, 건수, 연인원)');
     
-    const pCumAtt = cumAttByProg[p.사업ID] || [];
+    const pMonthAtt = monthAttByProg[p.사업ID] || [];
     const pNames = new Set();
     let pCumReal = 0;
     
-    pCumAtt.forEach(a => {
+    pMonthAtt.forEach(a => {
       if (isMemberType && a.출석여부 === 'O' && a.이름 !== '건수입력용_무명' && a.이름 !== '불특정_인원_입력') pNames.add(a.이름);
       if (isUnspecifiedType) pCumReal += Number(a.실인원) || 0;
     });
     
-    const pMonthAtt = monthAttByProg[p.사업ID] || [];
     let pAccum = 0;
     let pCount = 0;
     
